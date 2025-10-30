@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bouncing Ball Game</title>
+  <style>
+    body { margin: 0; background: #111; color: #fff; text-align: center; }
+    canvas { background: #222; display: block; margin: 30px auto; border-radius: 10px; }
+    #game-over { 
+      display: none; 
+      position: absolute; 
+      left: 0; right: 0; 
+      top: 35%; 
+      font-size: 3em; 
+      color: #ff4757; 
+      font-family: sans-serif;
+      font-weight: bold;
+      text-shadow: 0 2px 10px #000;
+    }
+    #restart { 
+      display: none; 
+      position: absolute; 
+      left: 0; right: 0; 
+      top: 55%; 
+      font-size: 2em; 
+      color: #fff; 
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="480" height="640"></canvas>
+  <div id="game-over">Game Over</div>
+  <div id="restart">Press Space to Restart</div>
+  <script src="game.js"></script>
+</body>
+</html>
