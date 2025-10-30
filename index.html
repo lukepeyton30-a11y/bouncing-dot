@@ -32,6 +32,145 @@
   <canvas id="game" width="480" height="640"></canvas>
   <div id="game-over">Game Over</div>
   <div id="restart">Press Space to Restart</div>
-  <script src="game.js"></script>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // Ball Specs
+    const BALL_RADIUS = 18;
+    const BALL_COLOR = "#ffd700";
+
+    // Line Specs
+    const LINE_WIDTH = 90;
+    const LINE_HEIGHT = 13;
+    const LINE_COLOR = "#1e90ff";
+    const LINE_Y = H - 60;
+    const LINE_SPEED = 8;
+
+    // Physics
+    const GRAVITY = 0.38;
+    const BOUNCE = 0.82;
+
+    // Game State
+    let ball, line, gameOver;
+
+    function resetGame() {
+      ball = {
+        x: W / 2,
+        y: 60,
+        vx: (Math.random() - 0.5) * 4,
+        vy: 1,
+        r: BALL_RADIUS,
+      };
+      line = {
+        x: W / 2 - LINE_WIDTH / 2,
+        y: LINE_Y,
+        width: LINE_WIDTH,
+        height: LINE_HEIGHT,
+        speed: 0,
+      };
+      gameOver = false;
+      document.getElementById("game-over").style.display = "none";
+      document.getElementById("restart").style.display = "none";
+    }
+    resetGame();
+
+    // Input
+    const keys = {};
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = true;
+      if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = true;
+      // Restart
+      if (gameOver && e.code === "Space") {
+        resetGame();
+        requestAnimationFrame(update);
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = false;
+      if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = false;
+    });
+
+    // Main Game Loop
+    function update() {
+      // Move line
+      if (keys.left) line.x -= LINE_SPEED;
+      if (keys.right) line.x += LINE_SPEED;
+      line.x = Math.max(0, Math.min(W - line.width, line.x));
+
+      // Move ball
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+      ball.vy += GRAVITY;
+
+      // Ball-wall bounce
+      if (ball.x - ball.r < 0) {
+        ball.x = ball.r; ball.vx *= -1;
+      }
+      if (ball.x + ball.r > W) {
+        ball.x = W - ball.r; ball.vx *= -1;
+      }
+
+      // Ball-line bounce
+      if (circleRectCollision(ball, line)) {
+        ball.y = line.y - ball.r;
+        ball.vy *= -BOUNCE;
+        // Add some "english" based on where it hit the line
+        let hit = (ball.x - (line.x + line.width/2)) / (line.width/2);
+        ball.vx += hit * 2.2;
+      }
+
+      // Ball-ground (game over)
+      if (ball.y + ball.r >= H) {
+        ball.y = H - ball.r;
+        gameOver = true;
+        document.getElementById("game-over").style.display = "block";
+        document.getElementById("restart").style.display = "block";
+        return;
+      }
+
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Draw ground
+      ctx.fillStyle = "#444";
+      ctx.fillRect(0, H-10, W, 10);
+
+      // Draw line
+      ctx.fillStyle = LINE_COLOR;
+      ctx.fillRect(line.x, line.y, line.width, line.height);
+
+      // Draw ball
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, 2 * Math.PI);
+      ctx.fillStyle = BALL_COLOR;
+      ctx.shadowColor = "#ffda44";
+      ctx.shadowBlur = 16;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.closePath();
+    }
+
+    // Utility: Circle-Rectangle Collision
+    function circleRectCollision(circle, rect) {
+      let cx = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
+      let cy = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+      let dx = circle.x - cx;
+      let dy = circle.y - cy;
+      return (dx * dx + dy * dy) < (circle.r * circle.r) &&
+             circle.vy > 0 && // Only if falling down
+             circle.y < rect.y + rect.height; // Not rising through bottom
+    }
+
+    // Start game loop
+    draw();
+    requestAnimationFrame(update);
+  </script>
 </body>
 </html>
