@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bouncing Dot — Future Echo Games</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; background: #111; color: #fff; text-align: center; font-family: Inter, system-ui, sans-serif; }
+    canvas { background: #222; display: block; margin: 30px auto; border-radius: 10px; }
+    #game-over { 
+      display: none; 
+      position: absolute; 
+      left: 0; right: 0; 
+      top: 35%; 
+      font-size: 3em; 
+      color: #ff4757; 
+      font-family: sans-serif;
+      font-weight: bold;
+      text-shadow: 0 2px 10px #000;
+    }
+    #restart { 
+      display: none; 
+      position: absolute; 
+      left: 0; right: 0; 
+      top: 55%; 
+      font-size: 2em; 
+      color: #fff; 
+      font-family: sans-serif;
+    }
+    /* Settings button + modal */
+    #settings-btn {
+      position: absolute;
+      right: 18px;
+      top: 18px;
+      background: #1e90ff;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      z-index: 10001;
+    }
+    #settings-modal {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: #1b1b1b;
+      border: 1px solid #333;
+      padding: 20px;
+      border-radius: 10px;
+      width: 320px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      z-index: 10000;
+    }
+    #settings-modal h2 { margin: 0 0 12px 0; font-size: 18px; }
+    .setting-row { display:flex; align-items:center; justify-content:space-between; margin: 10px 0; }
+    .setting-row label { flex:1; text-align:left; margin-right:12px; }
+    .close-settings { background:transparent; border:0; color:#fff; font-size:18px; cursor:pointer; }
+    /* back link */
+    .back-link { position: absolute; left: 16px; top: 14px; z-index:10002; }
+  </style>
+</head>
+<body>
+  <a class="back-link" href="/index.html">
+    <button class="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-200">← Back</button>
+  </a>
+  <canvas id="game" width="480" height="640"></canvas>
+  <button id="settings-btn" aria-haspopup="dialog" aria-controls="settings-modal">Settings</button>
+  <div id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 id="settings-title">Settings</h2>
+      <button class="close-settings" id="close-settings" aria-label="Close settings">✕</button>
+    </div>
+    <div class="setting-row">
+      <label for="gravity-enabled">Gravity</label>
+      <input id="gravity-enabled" type="checkbox" />
+    </div>
+    <div class="setting-row">
+      <label for="gravity-range">Strength</label>
+      <input id="gravity-range" type="range" min="0" max="2" step="0.01" value="0.38" />
+    </div>
+    <div style="font-size:12px;color:#bbb;margin-top:8px;">Tip: uncheck Gravity to turn it off.</div>
+  </div>
+  <div id="game-over">Game Over</div>
+  <div id="restart">Press Space to Restart</div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // Ball Specs
+    const BALL_RADIUS = 18;
+    const BALL_COLOR = "#ffd700";
+
+    // Line Specs
+    const LINE_WIDTH = 90;
+    const LINE_HEIGHT = 13;
+    const LINE_COLOR = "#1e90ff";
+    const LINE_Y = H - 60;
+    const LINE_SPEED = 8;
+
+  // Physics (configurable)
+  // gravity and whether it's enabled are mutable and persisted to localStorage
+  let gravity = parseFloat(localStorage.getItem('gravity')) || 0.38;
+  let gravityEnabled = (localStorage.getItem('gravityEnabled') !== 'false');
+  const BOUNCE = 0.82;
+
+  // Game State
+  let ball, line, gameOver, paused = false;
+
+    function resetGame() {
+      ball = {
+        x: W / 2,
+        y: 60,
+        vx: (Math.random() - 0.5) * 4,
+        vy: 1,
+        r: BALL_RADIUS,
+      };
+      line = {
+        x: W / 2 - LINE_WIDTH / 2,
+        y: LINE_Y,
+        width: LINE_WIDTH,
+        height: LINE_HEIGHT,
+        speed: 0,
+      };
+      gameOver = false;
+      document.getElementById("game-over").style.display = "none";
+      document.getElementById("restart").style.display = "none";
+    }
+    resetGame();
+
+    // Input
+    const keys = {};
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = true;
+      if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = true;
+      // Restart
+      if (gameOver && e.code === "Space") {
+        resetGame();
+        requestAnimationFrame(update);
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = false;
+      if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = false;
+    });
+
+    // Main Game Loop
+    function update() {
+      // if paused (e.g., settings open) don't run game logic
+      if (paused) return;
+      // Move line
+      if (keys.left) line.x -= LINE_SPEED;
+      if (keys.right) line.x += LINE_SPEED;
+      line.x = Math.max(0, Math.min(W - line.width, line.x));
+
+      // Move ball
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+  // apply gravity only when enabled
+  ball.vy += gravityEnabled ? gravity : 0;
+
+      // Ball-wall bounce
+      if (ball.x - ball.r < 0) {
+        ball.x = ball.r; ball.vx *= -1;
+      }
+      if (ball.x + ball.r > W) {
+        ball.x = W - ball.r; ball.vx *= -1;
+      }
+
+        // Ball-top bounce
+        if (ball.y - ball.r < 0) {
+          ball.y = ball.r;
+          if (ball.vy < 0) ball.vy *= -BOUNCE;
+        }
+
+      // Ball-line bounce
+      if (circleRectCollision(ball, line)) {
+        ball.y = line.y - ball.r;
+        ball.vy *= -BOUNCE;
+        // Add some "english" based on where it hit the line
+        let hit = (ball.x - (line.x + line.width/2)) / (line.width/2);
+        ball.vx += hit * 2.2;
+      }
+
+      // Ball-ground (game over)
+      if (ball.y + ball.r >= H) {
+        ball.y = H - ball.r;
+        gameOver = true;
+        document.getElementById("game-over").style.display = "block";
+        document.getElementById("restart").style.display = "block";
+        return;
+      }
+
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Draw ground
+      ctx.fillStyle = "#444";
+      ctx.fillRect(0, H-10, W, 10);
+
+      // Draw line
+      ctx.fillStyle = LINE_COLOR;
+      ctx.fillRect(line.x, line.y, line.width, line.height);
+
+      // Draw ball
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, 2 * Math.PI);
+      ctx.fillStyle = BALL_COLOR;
+      ctx.shadowColor = "#ffda44";
+      ctx.shadowBlur = 16;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.closePath();
+    }
+
+    // Utility: Circle-Rectangle Collision
+    function circleRectCollision(circle, rect) {
+      let cx = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
+      let cy = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+      let dx = circle.x - cx;
+      let dy = circle.y - cy;
+      return (dx * dx + dy * dy) < (circle.r * circle.r) &&
+             circle.vy > 0 && // Only if falling down
+             circle.y < rect.y + rect.height; // Not rising through bottom
+    }
+
+    // Start game loop
+    draw();
+    requestAnimationFrame(update);
+
+    // --- Settings UI wiring ---
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettings = document.getElementById('close-settings');
+    const gravityEnabledInput = document.getElementById('gravity-enabled');
+    const gravityRange = document.getElementById('gravity-range');
+
+    // initialize UI from storage
+    gravityRange.value = gravity;
+    gravityEnabledInput.checked = !!gravityEnabled;
+
+    function openSettings() {
+      // show modal and pause the game
+      settingsModal.style.display = 'block';
+      paused = true;
+      // focus first control for keyboard users
+      gravityEnabledInput.focus();
+    }
+    function closeSettingsModal() {
+      settingsModal.style.display = 'none';
+      // resume game loop unless game is over
+      paused = false;
+      settingsBtn.focus();
+      if (!gameOver) requestAnimationFrame(update);
+    }
+
+    settingsBtn.addEventListener('click', () => openSettings());
+    closeSettings.addEventListener('click', () => closeSettingsModal());
+
+    // change gravity enabled
+    gravityEnabledInput.addEventListener('change', (e) => {
+      gravityEnabled = e.target.checked;
+      localStorage.setItem('gravityEnabled', gravityEnabled ? 'true' : 'false');
+    });
+
+    // change gravity value
+    gravityRange.addEventListener('input', (e) => {
+      gravity = parseFloat(e.target.value);
+      localStorage.setItem('gravity', String(gravity));
+    });
+
+    // close with ESC
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && settingsModal.style.display === 'block') {
+        closeSettingsModal();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "games": [
+    {
+      "id": "bouncing-dot",
+      "title": "Bouncing Dot",
+      "description": "Guide the line, keep the dot bouncing — tweak gravity in settings.",
+      "path": "/games/bouncing-dot.html",
+      "icon": "⚽",
+      "gradientFrom": "amber-400",
+      "gradientTo": "rose-500",
+      "tags": ["physics", "arcade"],
+      "featured": true
+    }
+  ]
+}
