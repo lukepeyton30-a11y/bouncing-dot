@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bouncing Ball Game with Time Score</title>
+  <style>
+    body { margin: 0; background: #111; }
+    canvas {
+      display: block;
+      margin: auto;
+      background: #222;
+      border: 2px solid #444;
+    }
+    #overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-family: Arial, sans-serif;
+      color: white;
+      font-size: 48px;
+      background: rgba(0,0,0,0.6);
+      visibility: hidden;
+    }
+    #overlay button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div id="overlay">
+    <div id="message">Game Over</div>
+    <button onclick="restartGame()">Restart</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const message = document.getElementById("message");
+
+    // Ball
+    let ball = {
+      x: canvas.width / 2,
+      y: 50,
+      radius: 10,
+      dx: 3,
+      dy: 3
+    };
+
+    // Paddle
+    let paddle = {
+      width: 100,
+      height: 10,
+      x: canvas.width / 2 - 50,
+      y: canvas.height - 40,
+      speed: 6,
+      dx: 0
+    };
+
+    let gameOver = false;
+    let score = 0;
+
+    // Controls
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+        paddle.dx = -paddle.speed;
+      } else if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+        paddle.dx = paddle.speed;
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      if (
+        e.key === "ArrowLeft" || e.key.toLowerCase() === "a" ||
+        e.key === "ArrowRight" || e.key.toLowerCase() === "d"
+      ) {
+        paddle.dx = 0;
+      }
+    });
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "orange";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawPaddle() {
+      ctx.fillStyle = "cyan";
+      ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+    }
+
+    function drawScore() {
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 25);
+    }
+
+    function movePaddle() {
+      paddle.x += paddle.dx;
+      if (paddle.x < 0) paddle.x = 0;
+      if (paddle.x + paddle.width > canvas.width) {
+        paddle.x = canvas.width - paddle.width;
+      }
+    }
+
+    function moveBall() {
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // Bounce off walls
+      if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+        ball.dx *= -1;
+      }
+      if (ball.y - ball.radius < 0) {
+        ball.dy *= -1;
+      }
+
+      // Paddle collision
+      if (
+        ball.y + ball.radius >= paddle.y &&
+        ball.x >= paddle.x &&
+        ball.x <= paddle.x + paddle.width
+      ) {
+        ball.dy *= -1;
+        ball.y = paddle.y - ball.radius; // prevent sticking
+      }
+
+      // Ground collision (game over)
+      if (ball.y + ball.radius > canvas.height) {
+        endGame();
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBall();
+      drawPaddle();
+      drawScore();
+    }
+
+    function update() {
+      if (!gameOver) {
+        movePaddle();
+        moveBall();
+        draw();
+
+        // Increment score every frame (adjust rate if needed)
+        score++;
+
+        requestAnimationFrame(update);
+      }
+    }
+
+    function endGame() {
+      gameOver = true;
+      overlay.style.visibility = "visible";
+      message.textContent = "Game Over! Final Score: " + score;
+    }
+
+    function restartGame() {
+      ball = { x: canvas.width / 2, y: 50, radius: 10, dx: 3, dy: 3 };
+      paddle = { width: 100, height: 10, x: canvas.width / 2 - 50, y: canvas.height - 40, speed: 6, dx: 0 };
+      score = 0;
+      gameOver = false;
+      overlay.style.visibility = "hidden";
+      update();
+    }
+
+    update();
+  </script>
+</body>
+</html>
