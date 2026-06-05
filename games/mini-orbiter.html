@@ -6,31 +6,84 @@
     <title>Mini Orbiter — Future Echo Games</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        canvas { 
-            background: #000;
-            background-image: 
-                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 2px),
-                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 1px);
-            background-size: 100px 100px, 50px 50px;
-            background-position: 0 0;
+        body {
+            background: radial-gradient(circle at 18% 12%, rgba(56, 189, 248, 0.18), transparent 18%),
+                        radial-gradient(circle at 82% 16%, rgba(168, 85, 247, 0.10), transparent 18%),
+                        linear-gradient(180deg, #020617 0%, #020617 40%, #0f172a 100%);
+            color: #e2e8f0;
         }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+            background-size: 100% 34px, 34px 100%;
+            opacity: 0.35;
+            mix-blend-mode: overlay;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid rgba(56, 189, 248, 0.12);
+            box-shadow: 0 40px 100px -50px rgba(56, 189, 248, 0.45);
+            backdrop-filter: blur(18px);
+        }
+
+        .part-button {
+            transition: all 0.2s ease;
+            border-color: rgba(100, 116, 139, 0.7);
+            background: rgba(15, 23, 42, 0.65);
+            color: #e2e8f0;
+        }
+
+        .part-button:hover {
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.45);
+        }
+
         .part-button.selected {
-            border-color: #4f46e5;
-            background-color: rgba(79, 70, 229, 0.1);
+            border-color: #22d3ee;
+            background: rgba(14, 165, 233, 0.18);
+            box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.28);
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        .canvas-shell {
+            border-radius: 1.5rem;
+            border: 1px solid rgba(56, 189, 248, 0.12);
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.6);
+            box-shadow: 0 30px 70px -40px rgba(56, 189, 248, 0.3);
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            background: #020617;
+            background-image: radial-gradient(rgba(255,255,255,0.18), transparent 2px), radial-gradient(rgba(255,255,255,0.1), transparent 1px);
+            background-size: 110px 110px, 55px 55px;
+            background-position: 0 0, 28px 28px;
         }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
+<body class="min-h-screen text-slate-100 antialiased relative overflow-hidden">
     <a class="absolute left-4 top-4 z-50" href="/index.html">
         <button class="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-200">← Back</button>
     </a>
 
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-4 py-8 glass-panel rounded-[2rem] border border-cyan-500/10">
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Build Area -->
             <div class="lg:w-1/4 space-y-4">
-                <div class="bg-slate-800 rounded-lg p-4">
-                    <h2 class="text-xl font-bold mb-4">Parts</h2>
+                <div class="bg-slate-900/85 rounded-3xl p-5 border border-slate-700/40 shadow-xl shadow-cyan-500/5">
+                    <h2 class="text-xl font-bold mb-4 text-cyan-100">Parts</h2>
                     <div class="space-y-4">
                     <!-- Command & Control -->
                     <div>
@@ -147,18 +200,18 @@
                 </div>
                 </div>
 
-                <div class="bg-slate-800 rounded-lg p-4">
-                    <h2 class="text-xl font-bold mb-4">Stats</h2>
-                    <div class="space-y-2 text-sm">
+                <div class="stat-card rounded-3xl p-5">
+                    <h2 class="text-xl font-bold mb-4 text-cyan-100">Stats</h2>
+                    <div class="space-y-2 text-sm text-slate-300">
                         <div>Mass: <span id="stat-mass">0</span> kg</div>
                         <div>Thrust: <span id="stat-thrust">0</span> kN</div>
                         <div>Delta-v: <span id="stat-deltav">0</span> m/s</div>
                     </div>
                 </div>
 
-                <div class="bg-slate-800 rounded-lg p-4">
-                    <h2 class="text-xl font-bold mb-4">Flight Data</h2>
-                    <div class="space-y-2 text-sm">
+                <div class="stat-card rounded-3xl p-5">
+                    <h2 class="text-xl font-bold mb-4 text-cyan-100">Flight Data</h2>
+                    <div class="space-y-2 text-sm text-slate-300">
                         <div>Altitude: <span id="stat-altitude">0</span> km</div>
                         <div>Velocity: <span id="stat-velocity">0</span> m/s</div>
                         <div>Orbital Period: <span id="stat-period">N/A</span></div>
@@ -172,7 +225,9 @@
 
             <!-- Game Canvas -->
             <div class="lg:flex-1">
-                <canvas id="gameCanvas" class="w-full rounded-lg border border-slate-700"></canvas>
+                <div class="canvas-shell">
+                    <canvas id="gameCanvas"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -183,23 +238,27 @@
         const launchBtn = document.getElementById('launch-btn');
 
         // Set canvas size with good resolution
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+
         function resizeCanvas() {
             const container = canvas.parentElement;
-            const width = container.clientWidth;
-            const height = Math.min(window.innerHeight - 200, width * 0.75);
-            
-            // Set actual pixel size (2x for retina)
-            canvas.width = width * 2;
-            canvas.height = height * 2;
-            
-            // Set display size
-            canvas.style.width = width + 'px';
-            canvas.style.height = height + 'px';
-            
-            // Scale context for retina
-            ctx.scale(2, 2);
+            const displayWidth = container.clientWidth;
+            const displayHeight = Math.min(window.innerHeight - 220, displayWidth * 0.72);
+            const ratio = window.devicePixelRatio || 1;
+
+            canvasWidth = displayWidth;
+            canvasHeight = displayHeight;
+            canvas.width = Math.floor(displayWidth * ratio);
+            canvas.height = Math.floor(displayHeight * ratio);
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+
+            // Reset transform so scaling does not accumulate
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            drawBuildMode();
         }
-        
+
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
@@ -436,13 +495,13 @@
             if (gameState !== 'building' || !selectedPart) return;
 
             const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * 2;
-            const y = (e.clientY - rect.top) * 2;
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
             rocket.parts.push({
                 type: selectedPart,
-                x: x - canvas.width/4,
-                y: y - canvas.height/2
+                x: x - canvasWidth / 4,
+                y: y - canvasHeight / 2
             });
 
             updateRocketStats();
@@ -482,26 +541,26 @@
 
         // Draw build mode
         function drawBuildMode() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             
             // Draw grid
-            ctx.strokeStyle = '#1e293b';
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
             ctx.lineWidth = 1;
-            for (let x = 0; x < canvas.width; x += 20) {
+            for (let x = 0; x < canvasWidth; x += 20) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
+                ctx.lineTo(x, canvasHeight);
                 ctx.stroke();
             }
-            for (let y = 0; y < canvas.height; y += 20) {
+            for (let y = 0; y < canvasHeight; y += 20) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
+                ctx.lineTo(canvasWidth, y);
                 ctx.stroke();
             }
 
             // Draw rocket parts
-            const buildCenter = { x: canvas.width/4, y: canvas.height/2 };
+            const buildCenter = { x: canvasWidth / 4, y: canvasHeight / 2 };
             rocket.parts.forEach(part => {
                 const partDef = PARTS[part.type];
                 if (partDef && partDef.render) {
@@ -525,7 +584,7 @@
             if (rocket.parts.length > 0) {
                 gameState = 'flying';
                 launchBtn.disabled = true;
-                rocket.position = { x: canvas.width/4, y: canvas.height - 100 };
+                rocket.position = { x: canvasWidth / 4, y: canvasHeight - 100 };
                 rocket.velocity = { x: 0, y: 0 };
                 rocket.rotation = -Math.PI/2; // pointing up
                 requestAnimationFrame(updateFlight);
@@ -537,7 +596,7 @@
             if (gameState !== 'flying') return;
 
             // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             // Draw starry background
             // ... (background drawing code remains the same)
@@ -554,14 +613,14 @@
 
             // Apply gravity
             const distance = Math.sqrt(
-                Math.pow(rocket.position.x - canvas.width/2, 2) +
-                Math.pow(rocket.position.y - canvas.height/2, 2)
+                Math.pow(rocket.position.x - canvasWidth/2, 2) +
+                Math.pow(rocket.position.y - canvasHeight/2, 2)
             ) * SCALE;
             
             const gravity = G * EARTH_MASS / Math.pow(distance, 2);
             const angle = Math.atan2(
-                canvas.height/2 - rocket.position.y,
-                canvas.width/2 - rocket.position.x
+                canvasHeight/2 - rocket.position.y,
+                canvasWidth/2 - rocket.position.x
             );
             
             rocket.velocity.x += Math.cos(angle) * gravity * 0.016;
@@ -597,8 +656,8 @@
 
             // Update flight data
             const altitude = (Math.sqrt(
-                Math.pow(rocket.position.x - canvas.width/2, 2) +
-                Math.pow(rocket.position.y - canvas.height/2, 2)
+                Math.pow(rocket.position.x - canvasWidth/2, 2) +
+                Math.pow(rocket.position.y - canvasHeight/2, 2)
             ) * SCALE - EARTH_RADIUS) / 1000;
             
             const velocity = Math.sqrt(
