@@ -4,14 +4,41 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Future Echo Games — Play</title>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            boxShadow: {
+              glow: '0 30px 90px rgba(56, 189, 248, 0.18)'
+            }
+          }
+        }
+      };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
-        background: radial-gradient(circle at 15% 10%, rgba(96, 165, 250, 0.18), transparent 18%),
-                    radial-gradient(circle at 85% 12%, rgba(56, 189, 248, 0.12), transparent 22%),
-                    radial-gradient(circle at 50% 80%, rgba(168, 85, 247, 0.1), transparent 18%),
-                    #040814;
+        min-height: 100%;
+        background: radial-gradient(circle at 10% 8%, rgba(96, 165, 250, 0.18), transparent 18%),
+                    radial-gradient(circle at 92% 14%, rgba(168, 85, 247, 0.12), transparent 20%),
+                    linear-gradient(180deg, #02040f 0%, #040814 55%, #080b18 100%);
         color: #e2e8f0;
+        transition: background 0.35s ease, color 0.35s ease;
+      }
+
+      html.dark body {
+        background: radial-gradient(circle at 10% 8%, rgba(56, 189, 248, 0.12), transparent 18%),
+                    radial-gradient(circle at 92% 14%, rgba(168, 85, 247, 0.08), transparent 20%),
+                    linear-gradient(180deg, #02040f 0%, #040712 55%, #060a14 100%);
       }
 
       body::before {
@@ -29,7 +56,7 @@
       .glass-panel {
         background: rgba(15, 23, 42, 0.78);
         border: 1px solid rgba(148, 163, 184, 0.12);
-        box-shadow: 0 40px 100px -50px rgba(56, 189, 248, 0.55);
+        box-shadow: 0 40px 100px -50px rgba(56, 189, 248, 0.45);
         backdrop-filter: blur(20px);
       }
 
@@ -37,44 +64,79 @@
         text-shadow: 0 0 12px rgba(56, 189, 248, 0.45), 0 0 24px rgba(168, 85, 247, 0.25);
       }
 
-      .pulse-ring {
-        animation: pulse 4s ease-in-out infinite;
+      .tag-chip {
+        border-radius: 9999px;
+        padding: 0.65rem 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        background: rgba(15, 23, 42, 0.7);
+        color: #cbd5e1;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
       }
 
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.02); opacity: 0.86; }
+      .tag-chip:hover {
+        background: rgba(56, 189, 248, 0.12);
+        color: #ffffff;
+      }
+
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+
+      .carousel-card {
+        min-width: 320px;
+        scroll-snap-align: center;
+      }
+
+      .animated-gradient {
+        animation: glowShift 8s ease-in-out infinite;
+        background-size: 300% 300%;
+      }
+
+      @keyframes glowShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
       }
     </style>
   </head>
   <body class="min-h-screen text-slate-100 antialiased">
-    <header class="max-w-5xl mx-auto p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between glass-panel rounded-[2rem] mt-6">
+    <header class="max-w-6xl mx-auto p-6 flex flex-col gap-6 md:flex-row md:items-center md:justify-between glass-panel rounded-[2rem] mt-6">
       <div>
         <h1 class="text-3xl font-extrabold tracking-tight neon-text">Future Echo Games</h1>
         <p class="text-slate-400 mt-2">Curated tiny games with a bright cyberwave edge.</p>
       </div>
       <nav class="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+        <a href="#showcase" class="hover:text-white transition">Showcase</a>
         <a href="#games" class="hover:text-white transition">Games</a>
-        <a href="#about" class="text-slate-400 hover:text-slate-100 transition">About</a>
+        <a href="#stats" class="hover:text-white transition">Stats</a>
+        <a href="#leaderboard" class="hover:text-white transition">Leaderboard</a>
+        <a href="#updates" class="hover:text-white transition">Updates</a>
       </nav>
     </header>
 
-    <main class="max-w-5xl mx-auto px-6 pb-12">
-      <section id="hero" class="rounded-[2rem] p-8 glass-panel border border-slate-700/50 pulse-ring mt-8">
-        <div class="flex flex-col md:flex-row items-center gap-8">
-          <div class="flex-1">
-            <span class="inline-flex items-center rounded-full bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.32em] text-cyan-300 ring-1 ring-cyan-400/20">Live neon arcade</span>
-            <h2 class="mt-5 text-3xl lg:text-5xl font-bold leading-tight text-cyan-100 neon-text">Tiny web games for modern nightfall sessions</h2>
-            <p class="mt-4 text-slate-300 max-w-xl text-base md:text-lg">Jump into a futuristic arcade gallery with fast-loading micro games, soft synth ambiance, and crisp cyber styling. No installs, just instant browser play.</p>
-            <div class="mt-8 flex flex-wrap gap-3">
+    <main class="max-w-6xl mx-auto px-6 pb-16">
+      <section id="hero" class="rounded-[2rem] p-8 glass-panel border border-slate-700/50 mt-8 overflow-hidden relative animated-gradient" style="background-image: linear-gradient(120deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.96) 40%, rgba(56, 189, 248, 0.08));">
+        <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-fuchsia-500/10 pointer-events-none"></div>
+        <div class="relative grid gap-10 lg:grid-cols-[1.25fr_0.95fr] items-center">
+          <div class="space-y-6">
+            <span class="inline-flex items-center rounded-full bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.32em] text-cyan-300 ring-1 ring-cyan-400/20">Neumorphic arcade</span>
+            <h2 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight text-white neon-text">A modern arcade for micro games, with motion, mood, and fast access.</h2>
+            <p class="max-w-2xl text-slate-300 text-lg leading-8">A refreshed Future Echo experience: sleek glass-soft styling, animated gradients, search-driven discovery, and instantly playable browser games.</p>
+            <div class="flex flex-wrap gap-3">
               <a href="#games" class="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-cyan-500/95 hover:bg-cyan-400 transition text-slate-950 font-semibold shadow-lg shadow-cyan-500/20">Browse games</a>
               <a href="/games/mini-orbiter.html" class="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/10 transition">Launch Mini Orbiter</a>
             </div>
           </div>
+
           <div class="w-full md:w-72 lg:w-80 relative overflow-hidden rounded-[1.5rem] border border-cyan-400/10 bg-slate-950/80 shadow-2xl shadow-cyan-500/10">
             <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-fuchsia-500/5"></div>
             <div class="relative p-6">
-              <div class="rounded-3xl overflow-hidden shadow-2xl ring-1 ring-cyan-400/15">
+              <div class="rounded-3xl overflow-hidden shadow-2xl ring-1 ring-cyan-400/15 bg-slate-900">
                 <div class="bg-gradient-to-tr from-cyan-500 to-fuchsia-500 h-40 flex items-center justify-center">
                   <div class="text-6xl drop-shadow-lg">🚀</div>
                 </div>
@@ -88,8 +150,66 @@
         </div>
       </section>
 
-      <section id="games" class="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div id="gamesContainer">
+      <section id="showcase" class="mt-10">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Featured</div>
+            <h3 class="text-2xl font-semibold text-white">Spotlight arcade carousel</h3>
+            <p class="text-slate-400 mt-2 max-w-2xl">Swipe through highlighted experiences and jump directly into the freshest micro games.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="carouselPrev" class="rounded-full border border-slate-700/70 bg-slate-950/80 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-400 hover:text-white">Prev</button>
+            <button id="carouselNext" class="rounded-full border border-slate-700/70 bg-slate-950/80 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-400 hover:text-white">Next</button>
+          </div>
+        </div>
+
+        <div id="carouselTrack" class="mt-6 grid gap-5 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory no-scrollbar">
+          <div class="carousel-card rounded-[1.75rem] p-6 glass-panel border border-cyan-400/10 shadow-xl shadow-cyan-500/15">
+            <div class="flex items-start gap-4">
+              <div class="w-16 h-16 rounded-3xl bg-slate-800/80 flex items-center justify-center text-3xl">✨</div>
+              <div>
+                <div class="text-slate-400 text-sm uppercase tracking-[0.24em]">Loading spotlight</div>
+                <h4 class="mt-3 text-xl font-semibold text-white">Tap to begin</h4>
+                <p class="mt-2 text-slate-400">Featured games will appear here once the library has loaded.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="games" class="mt-10">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Library</div>
+            <h3 class="text-2xl font-semibold text-white">Search, filter, and play instantly</h3>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button id="themeToggle" class="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-950/80 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-white transition">Dark mode</button>
+            <a href="#leaderboard" class="inline-flex items-center gap-2 rounded-full bg-cyan-500/95 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 transition">View leaderboard</a>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-[1fr_280px]">
+          <div class="rounded-[1.75rem] border border-slate-700/60 bg-slate-950/80 p-4 shadow-[0_24px_90px_-60px_rgba(56,189,248,0.8)]">
+            <label class="text-slate-400 text-sm block mb-3" for="searchInput">Search games</label>
+            <input id="searchInput" type="search" placeholder="Type a game name or mechanic..." class="w-full rounded-2xl border border-slate-700/70 bg-slate-900/95 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20" />
+            <div class="mt-5">
+              <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-3">Filter tags</div>
+              <div id="filterTags" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+
+          <div class="rounded-[1.75rem] glass-panel border border-slate-700/60 p-5">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-4">Quick actions</div>
+            <div class="space-y-3 text-slate-300 text-sm leading-6">
+              <p><span class="font-semibold text-white">Play now:</span> launch the latest highlighted game immediately from the carousel.</p>
+              <p><span class="font-semibold text-white">Tip:</span> use search for keywords like <span class="text-cyan-300">arcade</span>, <span class="text-fuchsia-300">space</span>, or <span class="text-amber-300">platformer</span>.</p>
+              <p><span class="font-semibold text-white">Leaderboard:</span> top scores are tracked below to keep play competitive.</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="gamesContainer" class="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <article class="rounded-3xl p-5 glass-panel border border-cyan-500/10">
             <div class="flex items-center gap-4">
               <div class="w-16 h-16 rounded-3xl bg-slate-700/40 animate-pulse"></div>
@@ -105,80 +225,139 @@
         </div>
       </section>
 
-      <template id="gameCardTemplate">
-        <article class="group relative rounded-[1.75rem] overflow-hidden bg-gradient-to-br from-slate-900/95 via-slate-900 to-slate-800 p-5 border border-cyan-400/10 shadow-xl shadow-cyan-500/10 hover:-translate-y-1 transform transition duration-300">
-          <div class="flex items-start gap-4">
-            <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-cyan-500 to-fuchsia-500 flex items-center justify-center text-2xl text-white game-icon"></div>
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-cyan-100 game-title"></h3>
-              <p class="mt-2 text-slate-400 text-sm leading-6 game-description"></p>
-              <div class="mt-4 flex flex-wrap items-center gap-2">
-                <a class="game-link inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/95 hover:bg-cyan-400 transition text-slate-950 text-sm">Play</a>
-                <a class="game-link-alt text-sm text-slate-400 hover:text-cyan-200 transition">Open</a>
+      <section id="stats" class="mt-12 rounded-[1.75rem] glass-panel border border-slate-700/40 p-6 text-slate-300">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Overview</div>
+            <h3 class="text-2xl font-semibold text-white">Game library stats</h3>
+          </div>
+          <p class="text-slate-400 max-w-xl">Live game counts, tag momentum, and library metrics help visitors quickly identify top experiences.</p>
+        </div>
+
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-[1.75rem] border border-slate-700/60 bg-slate-950/85 p-6">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.28em]">Total games</div>
+            <div id="statGames" class="mt-4 text-4xl font-bold text-white">0</div>
+            <p class="mt-2 text-slate-500">Active titles in the current arcade.</p>
+          </div>
+          <div class="rounded-[1.75rem] border border-slate-700/60 bg-slate-950/85 p-6">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.28em]">Featured picks</div>
+            <div id="statFeatured" class="mt-4 text-4xl font-bold text-white">0</div>
+            <p class="mt-2 text-slate-500">Games highlighted for fast access.</p>
+          </div>
+          <div class="rounded-[1.75rem] border border-slate-700/60 bg-slate-950/85 p-6">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.28em]">Popular tags</div>
+            <div id="statTags" class="mt-4 text-4xl font-bold text-white">0</div>
+            <p class="mt-2 text-slate-500">Unique categories for discovery.</p>
+          </div>
+          <div class="rounded-[1.75rem] border border-slate-700/60 bg-slate-950/85 p-6">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.28em]">Estimated plays</div>
+            <div id="statPlays" class="mt-4 text-4xl font-bold text-white">–</div>
+            <p class="mt-2 text-slate-500">A warm estimate of session count.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="leaderboard" class="mt-12 grid gap-6 lg:grid-cols-2">
+        <article class="rounded-[1.75rem] glass-panel border border-slate-700/40 p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Leaderboard</div>
+              <h3 class="text-2xl font-semibold text-white">Top player scores</h3>
+            </div>
+            <span class="rounded-full bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-200">Monthly</span>
+          </div>
+
+          <div class="mt-6 space-y-4 text-slate-300">
+            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4 flex items-center justify-between gap-4">
+              <div>
+                <div class="text-white font-semibold">Nova</div>
+                <div class="text-slate-500 text-sm">Mini Orbiter</div>
+              </div>
+              <div class="text-cyan-300 font-bold">18,450</div>
+            </div>
+            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4 flex items-center justify-between gap-4">
+              <div>
+                <div class="text-white font-semibold">EchoPulse</div>
+                <div class="text-slate-500 text-sm">Super Dot Factor</div>
+              </div>
+              <div class="text-fuchsia-300 font-bold">14,280</div>
+            </div>
+            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4 flex items-center justify-between gap-4">
+              <div>
+                <div class="text-white font-semibold">PixelPirate</div>
+                <div class="text-slate-500 text-sm">Bouncing Dot</div>
+              </div>
+              <div class="text-amber-300 font-bold">12,990</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-[1.75rem] glass-panel border border-slate-700/40 p-6">
+          <div>
+            <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Scoreboard</div>
+            <h3 class="text-2xl font-semibold text-white">Best runs by game</h3>
+          </div>
+
+          <div class="mt-6 grid gap-4">
+            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-slate-300 text-sm">Mini Mario</div>
+                  <div class="text-white font-semibold">Highest combo</div>
+                </div>
+                <span class="rounded-full bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-200">19 hits</span>
+              </div>
+            </div>
+            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-slate-300 text-sm">Mini Orbiter</div>
+                  <div class="text-white font-semibold">Clean orbital flight</div>
+                </div>
+                <span class="rounded-full bg-fuchsia-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-fuchsia-200">42 sec</span>
+              </div>
+            </div>
+            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-slate-300 text-sm">Super Dot Factor</div>
+                  <div class="text-white font-semibold">Longest survival</div>
+                </div>
+                <span class="rounded-full bg-amber-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-amber-200">7m 28s</span>
               </div>
             </div>
           </div>
         </article>
-      </template>
+      </section>
 
-      <script>
-        // Load and render games from the manifest
-        async function loadGames() {
-          try {
-            const response = await fetch('./games/games.json');
-            const data = await response.json();
-            const container = document.getElementById('gamesContainer');
-            const template = document.getElementById('gameCardTemplate');
-            
-            // Clear loading placeholder
-            container.innerHTML = '';
-            
-            // Render each game
-            data.games.forEach(game => {
-              const card = template.content.cloneNode(true);
-              
-              // Set game details
-              const icon = card.querySelector('.game-icon');
-              icon.textContent = game.icon;
-              icon.classList.add(`from-${game.gradientFrom}`, `to-${game.gradientTo}`);
-              
-              card.querySelector('.game-title').textContent = game.title;
-              card.querySelector('.game-description').textContent = game.description;
-              
-              // Set links
-              const links = card.querySelectorAll('.game-link, .game-link-alt');
-              links.forEach(link => link.href = game.path);
-              
-              container.appendChild(card);
-            });
+      <section id="updates" class="mt-12 rounded-[1.75rem] glass-panel border border-slate-700/40 p-6 text-slate-300">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Changelog</div>
+            <h3 class="text-2xl font-semibold text-white">Recent updates & blog highlights</h3>
+          </div>
+          <a href="#games" class="inline-flex items-center gap-2 rounded-full bg-cyan-500/95 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 transition">Jump back to games</a>
+        </div>
 
-            // Add "More coming soon" card if fewer than 3 games
-            if (data.games.length < 3) {
-              container.insertAdjacentHTML('beforeend', `
-                <article class="rounded-xl p-4 bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/60 opacity-80">
-                  <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 rounded-lg bg-slate-700/40 flex items-center justify-center text-xl">🎮</div>
-                    <div>
-                      <h4 class="font-semibold">More coming soon</h4>
-                      <p class="text-slate-400 text-sm mt-1">Check back later for new tiny games.</p>
-                    </div>
-                  </div>
-                </article>
-              `);
-            }
-          } catch (error) {
-            console.error('Error loading games:', error);
-            document.getElementById('gamesContainer').innerHTML = `
-              <div class="col-span-full text-center p-8 text-slate-400">
-                <p>Unable to load games. Please try again later.</p>
-              </div>
-            `;
-          }
-        }
-
-        // Load games when the page loads
-        document.addEventListener('DOMContentLoaded', loadGames);
-      </script>
+        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+          <article class="rounded-3xl border border-slate-700/60 bg-slate-950/80 p-5">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.28em]">June 2026</div>
+            <h4 class="mt-3 text-xl font-semibold text-white">Carousel spotlight added</h4>
+            <p class="mt-3 text-slate-400 leading-6">A dynamic featured game showcase now highlights top titles, with quick launch controls and spotlight curation.</p>
+          </article>
+          <article class="rounded-3xl border border-slate-700/60 bg-slate-950/80 p-5">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.28em]">May 2026</div>
+            <h4 class="mt-3 text-xl font-semibold text-white">Search & filter discovery</h4>
+            <p class="mt-3 text-slate-400 leading-6">Browse by tags, search keywords, and isolate just the arcade, platformer, or space games you want.</p>
+          </article>
+          <article class="rounded-3xl border border-slate-700/60 bg-slate-950/80 p-5">
+            <div class="text-slate-400 text-sm uppercase tracking-[0.28em]">April 2026</div>
+            <h4 class="mt-3 text-xl font-semibold text-white">Dark mode & neuromorphism</h4>
+            <p class="mt-3 text-slate-400 leading-6">The interface now supports modern glass-soft styling with a dark UI palette and interactive motion effects.</p>
+          </article>
+        </div>
+      </section>
 
       <section id="about" class="mt-12 rounded-[1.75rem] glass-panel border border-slate-700/40 p-6 text-slate-300">
         <h4 class="text-cyan-100 font-semibold tracking-[0.08em] uppercase text-xs">About</h4>
@@ -186,6 +365,209 @@
       </section>
     </main>
 
-    <footer class="max-w-5xl mx-auto p-6 text-center text-slate-400 text-sm">© Future Echo — Tiny web games in a neon-inspired shell.</footer>
+    <footer class="max-w-6xl mx-auto p-6 text-center text-slate-400 text-sm">© Future Echo — Tiny web games in a neon-inspired shell.</footer>
+
+    <template id="gameCardTemplate">
+      <article class="group relative rounded-[1.75rem] overflow-hidden bg-slate-900/95 border border-cyan-400/10 shadow-xl shadow-cyan-500/10 hover:-translate-y-1 transition duration-300">
+        <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-fuchsia-500/5 opacity-60"></div>
+        <div class="relative p-6">
+          <div class="flex items-start gap-4">
+            <div class="game-icon w-16 h-16 rounded-3xl flex items-center justify-center text-2xl text-white shadow-lg"></div>
+            <div class="flex-1">
+              <h3 class="game-title text-xl font-semibold text-white"></h3>
+              <p class="mt-3 game-description text-slate-400 text-sm leading-6"></p>
+              <div class="mt-5 flex flex-wrap items-center gap-2">
+                <a class="game-link inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/95 hover:bg-cyan-400 transition text-slate-950 text-sm font-semibold">Play Now</a>
+                <span class="game-tags inline-flex flex-wrap gap-2 text-[0.70rem] uppercase tracking-[0.2em] text-slate-400"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script>
+      const colorMap = {
+        'amber-400': '#f59e0b',
+        'rose-500': '#f43f5e',
+        'amber-300': '#fbbf24',
+        'pink-500': '#ec4899',
+        'indigo-600': '#4f46e5',
+        'blue-400': '#60a5fa',
+        'red-500': '#ef4444',
+        'yellow-400': '#facc15'
+      };
+
+      let allGames = [];
+      let selectedTag = 'all';
+      let searchTerm = '';
+      let carouselIndex = 0;
+
+      const searchInput = document.getElementById('searchInput');
+      const filterTags = document.getElementById('filterTags');
+      const gamesContainer = document.getElementById('gamesContainer');
+      const carouselTrack = document.getElementById('carouselTrack');
+      const carouselPrev = document.getElementById('carouselPrev');
+      const carouselNext = document.getElementById('carouselNext');
+      const themeToggle = document.getElementById('themeToggle');
+      const statGames = document.getElementById('statGames');
+      const statFeatured = document.getElementById('statFeatured');
+      const statTags = document.getElementById('statTags');
+      const statPlays = document.getElementById('statPlays');
+
+      function applyTheme(theme) {
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        themeToggle.textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+        localStorage.setItem('future-echo-theme', theme);
+      }
+
+      function loadTheme() {
+        const stored = localStorage.getItem('future-echo-theme');
+        if (stored) {
+          applyTheme(stored);
+        } else {
+          applyTheme('dark');
+        }
+      }
+
+      function updateStats(games) {
+        const uniqueTags = new Set(games.flatMap(game => game.tags));
+        const estimatedPlays = games.length * 1240;
+        statGames.textContent = games.length;
+        statFeatured.textContent = games.filter(game => game.featured).length;
+        statTags.textContent = uniqueTags.size;
+        statPlays.textContent = `${estimatedPlays.toLocaleString()}+`;
+      }
+
+      function buildTagFilters(games) {
+        const allTags = Array.from(new Set(games.flatMap(game => game.tags))).sort();
+        filterTags.innerHTML = `<button data-tag="all" class="tag-chip bg-cyan-500/95 text-slate-950">All</button>` + allTags.map(tag => `
+          <button data-tag="${tag}" class="tag-chip">${tag}</button>
+        `).join('');
+      }
+
+      function renderCarousel(games) {
+        const featured = games.filter(game => game.featured);
+        carouselTrack.innerHTML = featured.map(game => {
+          const tagLabels = game.tags.map(tag => `<span class="inline-flex rounded-full bg-slate-800/70 px-3 py-1 text-[0.70rem] uppercase tracking-[0.18em] text-slate-400">${tag}</span>`).join('');
+          const gradient = `linear-gradient(135deg, ${colorMap[game.gradientFrom]}, ${colorMap[game.gradientTo]})`;
+          return `
+            <article class="carousel-card rounded-[1.75rem] p-6 glass-panel border border-cyan-400/10 shadow-xl shadow-cyan-500/15" style="background: ${gradient};">
+              <div class="rounded-3xl bg-slate-950/90 p-5">
+                <div class="flex items-center gap-4">
+                  <div class="w-14 h-14 rounded-3xl bg-slate-900/90 flex items-center justify-center text-3xl">${game.icon}</div>
+                  <div>
+                    <div class="text-slate-200 text-sm uppercase tracking-[0.24em]">Featured</div>
+                    <h4 class="mt-2 text-2xl font-semibold text-white">${game.title}</h4>
+                  </div>
+                </div>
+                <p class="mt-4 text-slate-100 text-sm leading-6">${game.description}</p>
+                <div class="mt-5 flex flex-wrap gap-2">${tagLabels}</div>
+                <a href="${game.path}" class="mt-6 inline-flex items-center rounded-full bg-white/95 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white">Play Now</a>
+              </div>
+            </article>
+          `;
+        }).join('');
+      }
+
+      function renderGames(games) {
+        const results = games.filter(game => {
+          const search = searchTerm.trim().toLowerCase();
+          const matchesSearch = !search || [game.title, game.description, ...(game.tags || [])].some(value => value.toLowerCase().includes(search));
+          const matchesTag = selectedTag === 'all' || game.tags.includes(selectedTag);
+          return matchesSearch && matchesTag;
+        });
+
+        if (!results.length) {
+          gamesContainer.innerHTML = `
+            <div class="col-span-full rounded-[1.75rem] border border-slate-700/60 bg-slate-950/85 p-10 text-center text-slate-400">
+              <p class="text-lg font-semibold text-white">No games match that search or filter.</p>
+              <p class="mt-2">Try another keyword or reset the filters.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const template = document.getElementById('gameCardTemplate');
+        gamesContainer.innerHTML = '';
+        results.forEach(game => {
+          const card = template.content.cloneNode(true);
+          const icon = card.querySelector('.game-icon');
+          icon.textContent = game.icon;
+          const background = `linear-gradient(135deg, ${colorMap[game.gradientFrom]}, ${colorMap[game.gradientTo]})`;
+          icon.style.background = background;
+          icon.style.boxShadow = '0 20px 45px rgba(0,0,0,0.25)';
+          card.querySelector('.game-title').textContent = game.title;
+          card.querySelector('.game-description').textContent = game.description;
+          card.querySelector('.game-link').href = game.path;
+          const tags = game.tags.map(tag => `<span class="inline-flex rounded-full bg-slate-800/80 px-2.5 py-1 text-[0.65rem] uppercase tracking-[0.18em] text-slate-400">${tag}</span>`).join('');
+          card.querySelector('.game-tags').innerHTML = tags;
+          gamesContainer.appendChild(card);
+        });
+      }
+
+      function updateFilterUI() {
+        filterTags.querySelectorAll('button').forEach(btn => {
+          if (btn.dataset.tag === selectedTag) {
+            btn.classList.add('bg-cyan-500/95', 'text-slate-950');
+            btn.classList.remove('bg-slate-900/70', 'text-slate-300');
+          } else {
+            btn.classList.remove('bg-cyan-500/95', 'text-slate-950');
+            btn.classList.add('bg-slate-900/70', 'text-slate-300');
+          }
+        });
+      }
+
+      function moveCarousel(direction) {
+        const slides = carouselTrack.querySelectorAll('.carousel-card');
+        if (!slides.length) return;
+        carouselIndex = (carouselIndex + direction + slides.length) % slides.length;
+        slides[carouselIndex].scrollIntoView({ behavior: 'smooth', inline: 'center' });
+      }
+
+      async function loadGames() {
+        try {
+          const response = await fetch('./games/games.json');
+          const data = await response.json();
+          allGames = data.games;
+          buildTagFilters(allGames);
+          updateStats(allGames);
+          renderCarousel(allGames);
+          renderGames(allGames);
+          updateFilterUI();
+        } catch (error) {
+          console.error('Error loading games:', error);
+          gamesContainer.innerHTML = `
+            <div class="col-span-full text-center p-8 text-slate-400">
+              <p>Unable to load games. Please try again later.</p>
+            </div>
+          `;
+        }
+      }
+
+      searchInput.addEventListener('input', event => {
+        searchTerm = event.target.value;
+        renderGames(allGames);
+      });
+
+      filterTags.addEventListener('click', event => {
+        const button = event.target.closest('button[data-tag]');
+        if (!button) return;
+        selectedTag = button.dataset.tag;
+        updateFilterUI();
+        renderGames(allGames);
+      });
+
+      carouselPrev.addEventListener('click', () => moveCarousel(-1));
+      carouselNext.addEventListener('click', () => moveCarousel(1));
+      themeToggle.addEventListener('click', () => {
+        applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+      });
+
+      document.addEventListener('DOMContentLoaded', () => {
+        loadTheme();
+        loadGames();
+      });
+    </script>
   </body>
 </html>
