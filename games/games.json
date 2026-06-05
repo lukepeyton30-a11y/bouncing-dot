@@ -12,6 +12,17 @@
       "featured": true
     },
     {
+      "id": "super-dot-factor",
+      "title": "Super Dot Factor",
+      "description": "Survive the timer with multiple dots — the ultimate bouncing dot challenge.",
+      "path": "/games/super-dot-factor.html",
+      "icon": "✨",
+      "gradientFrom": "amber-300",
+      "gradientTo": "pink-500",
+      "tags": ["physics", "arcade", "challenge"],
+      "featured": true
+    },
+    {
       "id": "mini-orbiter",
       "title": "Mini Orbiter",
       "description": "Build and launch your own rockets! A KSP-inspired space sandbox with realistic physics.",
@@ -33,6 +44,21 @@
           "Multiple engine types including ion propulsion",
           "Science experiments and power management"
         ]
+      }
+    },
+    {
+      "id": "mini-mario",
+      "title": "Mini Mario",
+      "description": "2D platformer inspired by classic Mario, with coins, enemies, and a flag finish line.",
+      "path": "/games/mario.html",
+      "icon": "🎮",
+      "gradientFrom": "red-500",
+      "gradientTo": "yellow-400",
+      "tags": ["platformer", "retro", "arcade"],
+      "featured": true,
+      "details": {
+        "controls": ["Arrow keys / A,D = Move", "Space / W = Jump", "R = Restart"],
+        "features": ["Coin collection", "Enemy stomping", "Flag-based level completion"]
       }
     }
   ]

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chess Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 2px solid #333;
+        }
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .white {
+            background-color: #f0d9b5;
+        }
+        .black {
+            background-color: #b58863;
+        }
+        .selected {
+            background-color: #ffff00;
+        }
+        .possible-move {
+            background-color: #90ee90;
+        }
+        .turn {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="turn" id="turn">White's turn</div>
+        <div id="board" class="board"></div>
+    </div>
+    <script>
+        // Chess pieces using Unicode
+        const pieces = {
+            'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
+            'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+        };
+
+        // Initial board setup
+        let board = [
+            ['r','n','b','q','k','b','n','r'],
+            ['p','p','p','p','p','p','p','p'],
+            ['','','','','','','',''],
+            ['','','','','','','',''],
+            ['','','','','','','',''],
+            ['','','','','','','',''],
+            ['P','P','P','P','P','P','P','P'],
+            ['R','N','B','Q','K','B','N','R']
+        ];
+
+        let selected = null;
+        let turn = 'white';
+        let possibleMoves = [];
+
+        // Render the board
+        function renderBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = 'square ' + ((row + col) % 2 === 0 ? 'white' : 'black');
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+                    if (board[row][col]) {
+                        square.textContent = pieces[board[row][col]];
+                    }
+                    square.addEventListener('click', handleClick);
+                    boardDiv.appendChild(square);
+                }
+            }
+            updateTurnDisplay();
+        }
+
+        // Update turn display
+        function updateTurnDisplay() {
+            document.getElementById('turn').textContent = turn.charAt(0).toUpperCase() + turn.slice(1) + "'s turn";
+        }
+
+        // Handle square click
+        function handleClick(e) {
+            const row = parseInt(e.target.dataset.row);
+            const col = parseInt(e.target.dataset.col);
+            const square = e.target;
+
+            if (selected) {
+                if (possibleMoves.some(move => move.row === row && move.col === col)) {
+                    // Make the move
+                    board[row][col] = board[selected.row][selected.col];
+                    board[selected.row][selected.col] = '';
+                    turn = turn === 'white' ? 'black' : 'white';
+                    selected = null;
+                    possibleMoves = [];
+                    renderBoard();
+                } else {
+                    // Deselect
+                    selected = null;
+                    possibleMoves = [];
+                    renderBoard();
+                }
+            } else {
+                // Select piece
+                if (board[row][col] && isCorrectTurn(board[row][col])) {
+                    selected = {row, col};
+                    possibleMoves = getPossibleMoves(row, col);
+                    renderBoard();
+                    highlightMoves();
+                }
+            }
+        }
+
+        // Check if piece belongs to current player
+        function isCorrectTurn(piece) {
+            return (turn === 'white' && piece === piece.toUpperCase()) ||
+                   (turn === 'black' && piece === piece.toLowerCase());
+        }
+
+        // Get possible moves (simplified, only basic moves)
+        function getPossibleMoves(row, col) {
+            const piece = board[row][col];
+            const moves = [];
+
+            // Very basic move generation - in a real game, this would be much more complex
+            if (piece.toLowerCase() === 'p') {
+                const direction = piece === 'P' ? -1 : 1;
+                const startRow = piece === 'P' ? 6 : 1;
+                // Forward move
+                if (row + direction >= 0 && row + direction < 8 && !board[row + direction][col]) {
+                    moves.push({row: row + direction, col});
+                    // Double move from start
+                    if (row === startRow && !board[row + 2 * direction][col]) {
+                        moves.push({row: row + 2 * direction, col});
+                    }
+                }
+                // Captures
+                for (let dc = -1; dc <= 1; dc += 2) {
+                    const newCol = col + dc;
+                    if (newCol >= 0 && newCol < 8 && row + direction >= 0 && row + direction < 8) {
+                        const target = board[row + direction][newCol];
+                        if (target && !isCorrectTurn(target)) {
+                            moves.push({row: row + direction, col: newCol});
+                        }
+                    }
+                }
+            } else if (piece.toLowerCase() === 'r') {
+                // Rook moves (simplified, no blocking check)
+                const directions = [[0,1], [0,-1], [1,0], [-1,0]];
+                for (const [dr, dc] of directions) {
+                    for (let i = 1; i < 8; i++) {
+                        const newRow = row + dr * i;
+                        const newCol = col + dc * i;
+                        if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) break;
+                        if (board[newRow][newCol]) {
+                            if (!isCorrectTurn(board[newRow][newCol])) {
+                                moves.push({row: newRow, col: newCol});
+                            }
+                            break;
+                        }
+                        moves.push({row: newRow, col: newCol});
+                    }
+                }
+            } else if (piece.toLowerCase() === 'n') {
+                // Knight moves
+                const knightMoves = [[-2,-1], [-2,1], [-1,-2], [-1,2], [1,-2], [1,2], [2,-1], [2,1]];
+                for (const [dr, dc] of knightMoves) {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                        if (!board[newRow][newCol] || !isCorrectTurn(board[newRow][newCol])) {
+                            moves.push({row: newRow, col: newCol});
+                        }
+                    }
+                }
+            } else if (piece.toLowerCase() === 'b') {
+                // Bishop moves (simplified)
+                const directions = [[1,1], [1,-1], [-1,1], [-1,-1]];
+                for (const [dr, dc] of directions) {
+                    for (let i = 1; i < 8; i++) {
+                        const newRow = row + dr * i;
+                        const newCol = col + dc * i;
+                        if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) break;
+                        if (board[newRow][newCol]) {
+                            if (!isCorrectTurn(board[newRow][newCol])) {
+                                moves.push({row: newRow, col: newCol});
+                            }
+                            break;
+                        }
+                        moves.push({row: newRow, col: newCol});
+                    }
+                }
+            } else if (piece.toLowerCase() === 'q') {
+                // Queen moves (combination of rook and bishop)
+                const directions = [[0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]];
+                for (const [dr, dc] of directions) {
+                    for (let i = 1; i < 8; i++) {
+                        const newRow = row + dr * i;
+                        const newCol = col + dc * i;
+                        if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) break;
+                        if (board[newRow][newCol]) {
+                            if (!isCorrectTurn(board[newRow][newCol])) {
+                                moves.push({row: newRow, col: newCol});
+                            }
+                            break;
+                        }
+                        moves.push({row: newRow, col: newCol});
+                    }
+                }
+            } else if (piece.toLowerCase() === 'k') {
+                // King moves
+                const kingMoves = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
+                for (const [dr, dc] of kingMoves) {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                        if (!board[newRow][newCol] || !isCorrectTurn(board[newRow][newCol])) {
+                            moves.push({row: newRow, col: newCol});
+                        }
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        // Highlight possible moves
+        function highlightMoves() {
+            possibleMoves.forEach(move => {
+                const square = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+                if (square) {
+                    square.classList.add('possible-move');
+                }
+            });
+            if (selected) {
+                const selectedSquare = document.querySelector(`[data-row="${selected.row}"][data-col="${selected.col}"]`);
+                if (selectedSquare) {
+                    selectedSquare.classList.add('selected');
+                }
+            }
+        }
+
+        // Initialize the game
+        renderBoard();
+    </script>
+</body>
+</html>

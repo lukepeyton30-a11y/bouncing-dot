@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini Mario — Future Echo Games</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; background: #0b4f9a; color: #fff; text-align: center; font-family: Inter, system-ui, sans-serif; }
+    canvas { background: linear-gradient(#80d2ff, #5ca6e0); display: block; margin: 20px auto; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+    .hud { position: absolute; left: 20px; top: 14px; color: #fff; font-weight: bold; text-shadow: 0 1px 4px #000; }
+    .back-link { position: absolute; left: 16px; top: 52px; z-index:10002; }
+    .message { position: absolute; left: 0; right: 0; top: 22%; font-size: 2.2em; color: #ffe97f; text-shadow: 0 2px 10px #000; }
+    .submessage{ position:absolute; left:0; right:0; top:35%; font-size: 1.1em; color:#fff; text-shadow:0 1px 5px #000; }
+  </style>
+</head>
+<body>
+  <a class="back-link" href="/index.html"><button class="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-200">← Back</button></a>
+  <div class="hud" id="hud">Score: 0 &nbsp; Lives: 3</div>
+  <canvas id="game" width="900" height="500"></canvas>
+  <div id="message" class="message" style="display:none;"></div>
+  <div id="submessage" class="submessage" style="display:none;">Press R to restart</div>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const TILE = 40;
+    const GRAVITY = 1;
+    const MAX_SPEED = 8;
+
+    const map = [
+      '                                                                                ',
+      '                                                                                ',
+      '                                                                                ',
+      '                                                                                ',
+      '                                                                                ',
+      '                                     C                                          F',
+      '                                      #####                                      ',
+      '                       C                                               X X      ',
+      '                      ###                                              XXXXX     ',
+      '               C                                                                    ',
+      '              ###          E                                                     ',
+      '      ###                                                                        ##',
+      '                     ######       #######                           ######     ##',
+      '############################### ######## ### ########## ####### ##################',
+      '############################### ######## ### ########## ####### ##################'
+    ];
+
+    const worldWidth = map[0].length * TILE;
+    const worldHeight = map.length * TILE;
+
+    let keys = {};
+    let cameraX = 0;
+
+    const playerTemplate = {
+      x: 60,
+      y: 360,
+      width: 28,
+      height: 36,
+      vx: 0,
+      vy: 0,
+      onGround: false,
+      lives: 3,
+      score: 0,
+      animFrame: 0,
+      animTimer: 0,
+      animState: 'idle'
+    };
+
+    let player = { ...playerTemplate };
+    let coins = [];
+    let enemies = [];
+    let flag = null;
+    let gameState = 'playing'; // playing, win, lose
+
+    function reset() {
+      player = { ...playerTemplate };
+      player.score = 0;
+      player.lives = 3;
+      player.animFrame = 0;
+      player.animTimer = 0;
+      player.animState = 'idle';
+      gameState = 'playing';
+      document.getElementById('message').style.display = 'none';
+      document.getElementById('submessage').style.display = 'none';
+      cameraX = 0;
+      coins = [];
+      enemies = [];
+      flag = null;
+
+      for (let y=0; y<map.length; y++) {
+        for (let x=0; x<map[y].length; x++) {
+          const c = map[y][x];
+          const px = x * TILE;
+          const py = y * TILE;
+          if (c === 'C') coins.push({x: px + 10, y: py + 10, size: 18, collected: false});
+          if (c === 'E') enemies.push({x: px, y: py + 4, w: 30, h: 34, dir: -1, range: 120, startX: px});
+          if (c === 'F') flag = {x: px + 4, y: py - TILE, w: 22, h: 50};
+        }
+      }
+      updateHUD();
+    }
+
+    function tileAt(x,y) {
+      const col = Math.floor(x / TILE);
+      const row = Math.floor(y / TILE);
+      if (row < 0 || row >= map.length || col < 0 || col >= map[row].length) return ' ';
+      return map[row][col];
+    }
+
+    function solidAt(x,y) {
+      const t = tileAt(x,y);
+      return t === '#' || t === 'B';
+    }
+
+    function hazardAt(x,y) {
+      const t = tileAt(x,y);
+      return t === 'X';
+    }
+
+    function collideWorld(px, py, pw, ph) {
+      const points = [
+        {x:px,   y:py},
+        {x:px+pw, y:py},
+        {x:px, y:py+ph},
+        {x:px+pw, y:py+ph}
+      ];
+      return points.some(p=>solidAt(p.x, p.y));
+    }
+
+    function updatePlayer() {
+      if (gameState !== 'playing') return;
+
+      if (keys.ArrowLeft || keys.KeyA) player.vx = Math.max(player.vx - 0.8, -MAX_SPEED);
+      else if (keys.ArrowRight || keys.KeyD) player.vx = Math.min(player.vx + 0.8, MAX_SPEED);
+      else player.vx *= 0.84;
+
+      if (keys.Space || keys.KeyW || keys.ArrowUp) {
+        if (player.onGround) {
+          player.vy = -17;
+          player.onGround = false;
+        }
+      }
+
+      player.vy += GRAVITY;
+      if (player.vy > 20) player.vy = 20;
+
+      // Horizontal movement + world collision
+      player.x += player.vx;
+      if (player.x < 0) player.x = 0;
+      if (collideWorld(player.x, player.y, player.width, player.height)) {
+        if (player.vx > 0) {
+          player.x = Math.floor(player.x / TILE) * TILE + TILE - player.width - 0.01;
+        } else if (player.vx < 0) {
+          player.x = Math.floor(player.x / TILE) * TILE + TILE - TILE + 0.01;
+        }
+        player.vx = 0;
+      }
+
+      // Vertical movement + world collision
+      player.y += player.vy;
+      player.onGround = false;
+      if (player.y + player.height > worldHeight) {
+        player.y = worldHeight - player.height;
+        player.vy = 0;
+        player.onGround = true;
+      }
+      if (collideWorld(player.x, player.y, player.width, player.height)) {
+        if (player.vy > 0) {
+          player.y = Math.floor((player.y + player.height) / TILE) * TILE - player.height;
+          player.vy = 0;
+          player.onGround = true;
+        } else if (player.vy < 0) {
+          player.y = Math.floor(player.y / TILE) * TILE + TILE;
+          player.vy = 0;
+        }
+      }
+
+      // World bounds horizontally
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > worldWidth) player.x = worldWidth - player.width;
+
+      // Hazards (spikes)
+      const footX = player.x + player.width/2;
+      const footY = player.y + player.height;
+      if (hazardAt(footX, footY) || hazardAt(player.x, player.y + player.height/2) || hazardAt(player.x + player.width, player.y + player.height/2)) {
+        loseLife();
+      }
+
+      // animation state
+      if (!player.onGround) {
+        player.animState = player.vy < 0 ? 'jump' : 'fall';
+      } else if (Math.abs(player.vx) > 0.4) {
+        player.animState = 'walk';
+      } else {
+        player.animState = 'idle';
+      }
+
+      player.animTimer += 1;
+      if (player.animState === 'walk') {
+        if (player.animTimer > 6) {
+          player.animTimer = 0;
+          player.animFrame = (player.animFrame + 1) % 4;
+        }
+      } else {
+        player.animTimer = 0;
+        player.animFrame = 0;
+      }
+
+      // Coins
+      coins.forEach(c => {
+        if (!c.collected && player.x < c.x + c.size && player.x + player.width > c.x && player.y < c.y + c.size && player.y + player.height > c.y) {
+          c.collected = true;
+          player.score += 10;
+          updateHUD();
+        }
+      });
+
+      // Enemies
+      enemies.forEach(e => {
+        if (player.x < e.x + e.w && player.x + player.width > e.x && player.y < e.y + e.h && player.y + player.height > e.y) {
+          if (player.vy > 2) {
+            e.dead = true;
+            player.score += 50;
+            player.vy = -10;
+          } else {
+            loseLife();
+          }
+        }
+      });
+
+      enemies = enemies.filter(e => !e.dead);
+
+      // Hit flag
+      if (flag && player.x < flag.x + flag.w && player.x + player.width > flag.x && player.y < flag.y + flag.h && player.y + player.height > flag.y) {
+        win();
+      }
+
+      // fall below world
+      if (player.y > worldHeight + 300) {
+        loseLife();
+      }
+
+      // camera
+      cameraX = player.x + player.width/2 - W/2;
+      cameraX = Math.max(0, Math.min(worldWidth - W, cameraX));
+    }
+
+    function updateEnemies() {
+      enemies.forEach(e => {
+        e.x += e.dir * 1.2;
+        if (e.x < e.startX - e.range || e.x > e.startX + e.range) e.dir *= -1;
+      });
+    }
+
+    function loseLife() {
+      player.lives -= 1;
+      updateHUD();
+      if (player.lives <= 0) {
+        gameState = 'lose';
+        showMessage('Game Over');
+      } else {
+        player.x = 60;
+        player.y = 360;
+        player.vx = 0;
+        player.vy = 0;
+      }
+    }
+
+    function win() {
+      gameState = 'win';
+      showMessage('Level Complete!');
+      player.score += 1000;
+      updateHUD();
+    }
+
+    function showMessage(text) {
+      const msg = document.getElementById('message');
+      msg.textContent = text;
+      msg.style.display = 'block';
+      document.getElementById('submessage').style.display = 'block';
+    }
+
+    function updateHUD() {
+      document.getElementById('hud').innerHTML = `Score: ${player.score} &nbsp; Lives: ${player.lives}`;
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,W,H);
+      ctx.save();
+      ctx.translate(-cameraX,0);
+
+      // background ground
+      ctx.fillStyle = '#7ecef4';
+      ctx.fillRect(cameraX,0,W,H);
+
+      // draw tiles
+      for (let y=0;y<map.length;y++){
+        for (let x=0;x<map[y].length;x++){
+          const ch = map[y][x];
+          const px = x*TILE;
+          const py = y*TILE;
+          if (ch === '#') {
+            ctx.fillStyle = '#9b6b2f';
+            ctx.fillRect(px,py,TILE,TILE);
+            ctx.fillStyle = '#8f5f2b';
+            ctx.fillRect(px+4,py+4,TILE-8,TILE-8);
+          } else if (ch === 'X') {
+            // spike hazard tile
+            ctx.fillStyle = '#222';
+            ctx.fillRect(px,py,TILE,TILE);
+            ctx.fillStyle = '#999';
+            for (let s = 0; s < 4; s++) {
+              const sx = px + 4 + s*9;
+              ctx.beginPath();
+              ctx.moveTo(sx, py + TILE);
+              ctx.lineTo(sx + 4, py + 6);
+              ctx.lineTo(sx + 8, py + TILE);
+              ctx.closePath();
+              ctx.fill();
+            }
+          } else if (ch==='F') {
+            ctx.fillStyle='#5a3b10';
+            ctx.fillRect(px,py+TILE-4,4,4);
+          }
+        }
+      }
+
+      // draw coins
+      coins.forEach(c => {
+        if (!c.collected) {
+          ctx.fillStyle = '#ffd700';
+          ctx.beginPath();
+          ctx.arc(c.x + c.size/2, c.y + c.size/2, c.size/2, 0, Math.PI*2);
+          ctx.fill();
+        }
+      });
+
+      // draw enemies
+      enemies.forEach(e => {
+        ctx.fillStyle = '#c33';
+        ctx.fillRect(e.x, e.y, e.w, e.h);
+        ctx.fillStyle='#000';
+        ctx.fillRect(e.x+6, e.y+10, 6, 6);
+        ctx.fillRect(e.x+18, e.y+10, 6, 6);
+      });
+
+      // draw flag
+      if (flag) {
+        ctx.fillStyle = '#4d2';
+        ctx.fillRect(flag.x, flag.y + flag.h - 4, 4, 4);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(flag.x+4, flag.y, 28, 14);
+      }
+
+      // draw player with animated legs
+      const bodyColor = player.animState === 'jump' ? '#ffa299' : player.animState === 'fall' ? '#ff7c7c' : '#ff3c4e';
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      // eyes
+      ctx.fillStyle = '#000';
+      ctx.fillRect(player.x + 8, player.y + 8, 4, 4);
+      ctx.fillRect(player.x + 16, player.y + 8, 4, 4);
+
+      // legs animation
+      const legOffset = player.animState === 'walk' ? (player.animFrame % 2 === 0 ? 4 : -4) : 0;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(player.x + 6, player.y + player.height - 8, 6, 8);
+      ctx.fillRect(player.x + 16 + legOffset / 2, player.y + player.height - 8, 6, 8);
+
+      ctx.restore();
+
+      if (gameState === 'win' || gameState === 'lose') {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0,0,W,H);
+      }
+    }
+
+    function loop() {
+      if (gameState==='playing') {
+        updatePlayer();
+        updateEnemies();
+      }
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (e.code === 'KeyR') {
+        reset();
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    reset();
+    loop();
+
+    const instructions = document.createElement('div');
+    instructions.style.position='absolute';
+    instructions.style.right='20px';
+    instructions.style.top='20px';
+    instructions.style.color='#fff';
+    instructions.style.textShadow='0 1px 4px #000';
+    instructions.style.fontWeight='bold';
+    instructions.innerHTML='Arrows / A,D = Walk<br>W / Space = Jump<br>R = Restart';
+    document.body.appendChild(instructions);
+  </script>
+</body>
+</html>
