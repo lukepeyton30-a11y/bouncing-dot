@@ -190,14 +190,16 @@
         </div>
 
         <div class="mt-6 grid gap-4 lg:grid-cols-[1fr_280px]">
-          <div class="rounded-[1.75rem] border border-slate-700/60 bg-slate-950/80 p-4 shadow-[0_24px_90px_-60px_rgba(56,189,248,0.8)]">
-            <label class="text-slate-400 text-sm block mb-3" for="searchInput">Search games</label>
-            <input id="searchInput" type="search" placeholder="Type a game name or mechanic..." class="w-full rounded-2xl border border-slate-700/70 bg-slate-900/95 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20" />
-            <div class="mt-5">
-              <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-3">Filter tags</div>
-              <div id="filterTags" class="flex flex-wrap gap-2"></div>
-            </div>
-          </div>
+<!-- SEARCH BAR (commented out)
+      <div class="rounded-[1.75rem] border border-slate-700/60 bg-slate-950/80 p-4 shadow-[0_24px_90px_-60px_rgba(56,189,248,0.8)]">
+        <label class="text-slate-400 text-sm block mb-3" for="searchInput">Search games</label>
+        <input id="searchInput" type="search" placeholder="Type a game name or mechanic..." class="w-full rounded-2xl border border-slate-700/70 bg-slate-900/95 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20" />
+        <div class="mt-5">
+          <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-3">Filter tags</div>
+          <div id="filterTags" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+      -->
 
           <div class="rounded-[1.75rem] glass-panel border border-slate-700/60 p-5">
             <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-4">Quick actions</div>
@@ -258,75 +260,19 @@
         </div>
       </section>
 
-      <section id="leaderboard" class="mt-12 grid gap-6 lg:grid-cols-2">
+      <section id="leaderboard" class="mt-12">
         <article class="rounded-[1.75rem] glass-panel border border-slate-700/40 p-6">
-          <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center justify-between gap-4 mb-6">
             <div>
               <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Leaderboard</div>
-              <h3 class="text-2xl font-semibold text-white">Top player scores</h3>
+              <h3 class="text-2xl font-semibold text-white">Weekly top scores</h3>
             </div>
-            <span class="rounded-full bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-200">Monthly</span>
+            <span class="rounded-full bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-200">This week</span>
           </div>
 
-          <div class="mt-6 space-y-4 text-slate-300">
-            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4 flex items-center justify-between gap-4">
-              <div>
-                <div class="text-white font-semibold">Nova</div>
-                <div class="text-slate-500 text-sm">Mini Orbiter</div>
-              </div>
-              <div class="text-cyan-300 font-bold">18,450</div>
-            </div>
-            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4 flex items-center justify-between gap-4">
-              <div>
-                <div class="text-white font-semibold">EchoPulse</div>
-                <div class="text-slate-500 text-sm">Super Dot Factor</div>
-              </div>
-              <div class="text-fuchsia-300 font-bold">14,280</div>
-            </div>
-            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4 flex items-center justify-between gap-4">
-              <div>
-                <div class="text-white font-semibold">PixelPirate</div>
-                <div class="text-slate-500 text-sm">Bouncing Dot</div>
-              </div>
-              <div class="text-amber-300 font-bold">12,990</div>
-            </div>
-          </div>
-        </article>
-
-        <article class="rounded-[1.75rem] glass-panel border border-slate-700/40 p-6">
-          <div>
-            <div class="text-slate-400 text-sm uppercase tracking-[0.32em] mb-2">Scoreboard</div>
-            <h3 class="text-2xl font-semibold text-white">Best runs by game</h3>
-          </div>
-
-          <div class="mt-6 grid gap-4">
-            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <div class="text-slate-300 text-sm">Mini Mario</div>
-                  <div class="text-white font-semibold">Highest combo</div>
-                </div>
-                <span class="rounded-full bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-200">19 hits</span>
-              </div>
-            </div>
-            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <div class="text-slate-300 text-sm">Mini Orbiter</div>
-                  <div class="text-white font-semibold">Clean orbital flight</div>
-                </div>
-                <span class="rounded-full bg-fuchsia-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-fuchsia-200">42 sec</span>
-              </div>
-            </div>
-            <div class="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <div class="text-slate-300 text-sm">Super Dot Factor</div>
-                  <div class="text-white font-semibold">Longest survival</div>
-                </div>
-                <span class="rounded-full bg-amber-500/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-amber-200">7m 28s</span>
-              </div>
-            </div>
+          <div class="mt-6 text-center py-8">
+            <div class="text-slate-400 text-lg mb-2">No scores yet</div>
+            <p class="text-slate-500 text-sm">Play the games and your best scores this week will appear here!</p>
           </div>
         </article>
       </section>
