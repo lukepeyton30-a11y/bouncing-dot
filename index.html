@@ -341,7 +341,9 @@
         'indigo-600': '#4f46e5',
         'blue-400': '#60a5fa',
         'red-500': '#ef4444',
-        'yellow-400': '#facc15'
+        'yellow-400': '#facc15',
+        'emerald-500': '#10b981',
+        'cyan-400': '#22d3ee'
       };
 
       let allGames = [];
@@ -491,18 +493,22 @@
         }
       }
 
-      searchInput.addEventListener('input', event => {
-        searchTerm = event.target.value;
-        renderGames(allGames);
-      });
+      if (searchInput) {
+        searchInput.addEventListener('input', event => {
+          searchTerm = event.target.value;
+          renderGames(allGames);
+        });
+      }
 
-      filterTags.addEventListener('click', event => {
-        const button = event.target.closest('button[data-tag]');
-        if (!button) return;
-        selectedTag = button.dataset.tag;
-        updateFilterUI();
-        renderGames(allGames);
-      });
+      if (filterTags) {
+        filterTags.addEventListener('click', event => {
+          const button = event.target.closest('button[data-tag]');
+          if (!button) return;
+          selectedTag = button.dataset.tag;
+          updateFilterUI();
+          renderGames(allGames);
+        });
+      }
 
       carouselPrev.addEventListener('click', () => moveCarousel(-1));
       carouselNext.addEventListener('click', () => moveCarousel(1));

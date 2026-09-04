@@ -60,6 +60,21 @@
         "controls": ["Arrow keys / A,D = Move", "Space / W = Jump", "R = Restart"],
         "features": ["Coin collection", "Enemy stomping", "Flag-based level completion"]
       }
+    },
+    {
+      "id": "chess-yeah",
+      "title": "Chess, YEAH!!!",
+      "description": "A quick two-player chess game with clickable pieces and move highlights.",
+      "path": "/games/chess-yeah.html",
+      "icon": "♞",
+      "gradientFrom": "emerald-500",
+      "gradientTo": "cyan-400",
+      "tags": ["chess", "strategy", "board game"],
+      "featured": true,
+      "details": {
+        "controls": ["Click a piece to see its available moves", "Click a highlighted square to move"],
+        "features": ["Two-player local play", "Move highlighting", "Classic chess piece set"]
+      }
     }
   ]
 }
