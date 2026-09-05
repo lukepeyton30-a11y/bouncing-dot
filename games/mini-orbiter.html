@@ -115,9 +115,9 @@
     <main class="container mx-auto px-4 py-5 lg:py-6">
         <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                <p class="text-sm text-slate-400">Stack a launch vehicle, stage it cleanly, and push for altitude.</p>
+                <p class="text-sm text-slate-400">Place hardware freely, stage it cleanly, and push for altitude.</p>
             </div>
-            <div id="build-status" class="text-sm text-cyan-200" aria-live="polite">Select a part, then click the stack bay.</div>
+            <div id="build-status" class="text-sm text-cyan-200" aria-live="polite">Select a part, then click the build area.</div>
         </div>
     <div class="glass-panel rounded-[2rem] border border-cyan-500/10 p-4 sm:p-6">
         <div class="flex flex-col lg:flex-row gap-6">
@@ -126,7 +126,7 @@
                 <div class="bg-slate-900/85 rounded-3xl p-5 border border-slate-700/40 shadow-xl shadow-cyan-500/5">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-bold text-cyan-100">Parts</h2>
-                        <span id="part-count" class="text-xs uppercase tracking-[0.2em] text-slate-500">0 staged</span>
+                        <span id="part-count" class="text-xs uppercase tracking-[0.2em] text-slate-500">0 parts</span>
                     </div>
                     <div class="space-y-4">
                     <!-- Command & Control -->
@@ -345,7 +345,10 @@
             fuel: 0,
             maxFuel: 0,
             activeStage: 1,
-            stageCount: 1
+            stageCount: 1,
+            flightParts: [],
+            debris: [],
+            explosions: []
         };
 
         function metalGradient(top, bottom, left = '#f8fafc', right = '#64748b') {
@@ -662,7 +665,7 @@
                 document.querySelectorAll('.part-button').forEach(b => b.classList.remove('selected'));
                 button.classList.add('selected');
                 selectedPart = button.dataset.part;
-                buildStatus.textContent = `${PARTS[selectedPart].name} selected. Click the stack bay to add it.`;
+                buildStatus.textContent = `${PARTS[selectedPart].name} selected. Move over the build area, then click to place it.`;
                 drawBuildMode();
             });
         });
@@ -690,14 +693,15 @@
         canvas.addEventListener('click', (e) => {
             if (gameState !== 'building' || !selectedPart) return;
 
-            const stackIndex = rocket.parts.length;
-            const stackSpacing = 34;
-            const stackY = canvasHeight / 2 + 120 - stackIndex * stackSpacing;
+            const { x, y } = getCanvasPosition(e);
+            const buildCenter = { x: canvasWidth / 2, y: canvasHeight / 2 };
+            const snappedX = Math.round((x - buildCenter.x) / 20) * 20;
+            const snappedY = Math.round((y - buildCenter.y) / 20) * 20;
             const stage = rocket.stageCount;
             rocket.parts.push({
                 type: selectedPart,
-                x: 0,
-                y: stackY - canvasHeight / 2,
+                x: Math.max(-canvasWidth / 2 + 40, Math.min(canvasWidth / 2 - 40, snappedX)),
+                y: Math.max(-canvasHeight / 2 + 40, Math.min(canvasHeight / 2 - 40, snappedY)),
                 stage
             });
 
@@ -732,7 +736,7 @@
             rocket.maxFuel = maxFuel;
             rocket.stageCount = stageCount;
             rocket.activeStage = Math.min(rocket.activeStage, rocket.stageCount);
-            partCount.textContent = `${rocket.parts.length} staged`;
+            partCount.textContent = `${rocket.parts.length} parts`;
             undoBtn.disabled = rocket.parts.length === 0;
 
             // Update UI
@@ -774,15 +778,6 @@
 
             // Draw rocket parts
             const buildCenter = { x: canvasWidth / 2, y: canvasHeight / 2 };
-            ctx.strokeStyle = 'rgba(34, 211, 238, 0.28)';
-            ctx.setLineDash([6, 8]);
-            ctx.beginPath();
-            ctx.moveTo(buildCenter.x, 24);
-            ctx.lineTo(buildCenter.x, canvasHeight - 24);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.fillStyle = 'rgba(34, 211, 238, 0.18)';
-            ctx.fillRect(buildCenter.x - 72, canvasHeight / 2 + 136, 144, 8);
             rocket.parts.forEach(part => {
                 const partDef = PARTS[part.type];
                 if (partDef && partDef.render) {
@@ -791,8 +786,8 @@
             });
 
             if (gameState === 'building' && selectedPart && cursorPosition) {
-                const previewX = 0;
-                const previewY = 120 - rocket.parts.length * 34;
+                const previewX = Math.round((cursorPosition.x - buildCenter.x) / 20) * 20;
+                const previewY = Math.round((cursorPosition.y - buildCenter.y) / 20) * 20;
                 const previewPart = PARTS[selectedPart];
                 ctx.save();
                 ctx.fillStyle = 'rgba(34, 211, 238, 0.16)';
@@ -856,6 +851,106 @@
             });
         });
 
+        function findConnectedParts() {
+            if (!rocket.parts.length) return new Set();
+            const anchorIndex = rocket.parts.findIndex(part => part.type === 'command' || part.type === 'probe');
+            const connected = new Set([anchorIndex >= 0 ? anchorIndex : 0]);
+            let changed = true;
+            while (changed) {
+                changed = false;
+                rocket.parts.forEach((part, index) => {
+                    if (connected.has(index)) return;
+                    const touchesConnected = rocket.parts.some((other, otherIndex) => {
+                        if (!connected.has(otherIndex)) return false;
+                        const distance = Math.hypot(part.x - other.x, part.y - other.y);
+                        return distance <= 34;
+                    });
+                    if (touchesConnected) {
+                        connected.add(index);
+                        changed = true;
+                    }
+                });
+            }
+            return connected;
+        }
+
+        function prepareFlightAssembly() {
+            const connected = findConnectedParts();
+            rocket.flightParts = rocket.parts.filter((part, index) => connected.has(index));
+            rocket.debris = rocket.parts
+                .filter((part, index) => !connected.has(index))
+                .map((part, index) => ({
+                    ...part,
+                    position: {
+                        x: rocket.position.x + part.x,
+                        y: rocket.position.y + part.y
+                    },
+                    velocity: {
+                        x: rocket.velocity.x + (index % 2 ? 0.8 : -0.8),
+                        y: rocket.velocity.y - 0.4
+                    },
+                    rotation: 0,
+                    spin: index % 2 ? 0.025 : -0.025
+                }));
+            if (rocket.debris.length) {
+                buildStatus.textContent = `${rocket.debris.length} unconnected part${rocket.debris.length === 1 ? '' : 's'} broke loose.`;
+            }
+        }
+
+        function triggerExplosion(x, y, radius = 18) {
+            rocket.explosions.push({ x, y, radius, life: 1 });
+        }
+
+        function updateDebris() {
+            rocket.debris = rocket.debris.filter(debris => {
+                debris.position.x += debris.velocity.x;
+                debris.position.y += debris.velocity.y;
+                debris.velocity.y += 0.012;
+                debris.rotation += debris.spin;
+                const hitCraft = rocket.flightParts.some(part => {
+                    const partX = rocket.position.x + part.x;
+                    const partY = rocket.position.y + part.y;
+                    return Math.hypot(debris.position.x - partX, debris.position.y - partY) < 24;
+                });
+                if (hitCraft) {
+                    triggerExplosion(debris.position.x, debris.position.y, 26);
+                    return false;
+                }
+                return debris.position.x > -80 && debris.position.x < canvasWidth + 80 &&
+                    debris.position.y > -80 && debris.position.y < canvasHeight + 80;
+            });
+            rocket.explosions = rocket.explosions.filter(explosion => {
+                explosion.life -= 0.035;
+                explosion.radius += 1.4;
+                return explosion.life > 0;
+            });
+        }
+
+        function drawDebrisAndExplosions() {
+            rocket.debris.forEach(debris => {
+                const partDef = PARTS[debris.type];
+                if (partDef && partDef.render) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.9;
+                    partDef.render(debris.position.x, debris.position.y, debris.rotation);
+                    ctx.restore();
+                }
+            });
+            rocket.explosions.forEach(explosion => {
+                ctx.save();
+                ctx.globalAlpha = explosion.life;
+                const glow = ctx.createRadialGradient(explosion.x, explosion.y, 2, explosion.x, explosion.y, explosion.radius);
+                glow.addColorStop(0, '#fff7ed');
+                glow.addColorStop(0.3, '#fbbf24');
+                glow.addColorStop(1, 'rgba(239,68,68,0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
         // Launch button
         launchBtn.addEventListener('click', () => {
             if (rocket.thrust <= 0) {
@@ -877,6 +972,8 @@
                 rocket.position = { x: canvasWidth / 2, y: canvasHeight - 220 };
                 rocket.velocity = { x: 0, y: 0 };
                 rocket.rotation = -Math.PI/2; // pointing up
+                rocket.explosions = [];
+                prepareFlightAssembly();
                 requestAnimationFrame(updateFlight);
             }
         });
@@ -966,12 +1063,14 @@
                 if (rocket.velocity.y > 0) rocket.velocity.y = 0;
             }
 
+            updateDebris();
+
             // Draw rocket
             ctx.save();
             ctx.translate(rocket.position.x, rocket.position.y);
             ctx.rotate(rocket.rotation);
             
-            rocket.parts.forEach(part => {
+            rocket.flightParts.forEach(part => {
                 const partDef = PARTS[part.type];
                 if (partDef && partDef.render) {
                     partDef.render(part.x, part.y, 0);
@@ -989,6 +1088,7 @@
             }
             
             ctx.restore();
+            drawDebrisAndExplosions();
 
             // Update flight data
             const altitude = (Math.sqrt(
@@ -1015,7 +1115,7 @@
             rocket.parts.pop();
             updateRocketStats();
             drawBuildMode();
-            buildStatus.textContent = rocket.parts.length ? 'Last part removed.' : 'Select a part, then click the stack bay.';
+            buildStatus.textContent = rocket.parts.length ? 'Last part removed.' : 'Select a part, then click the build area.';
         });
 
         resetBtn.addEventListener('click', () => {
@@ -1028,13 +1128,16 @@
             rocket.maxFuel = 0;
             rocket.activeStage = 1;
             rocket.stageCount = 1;
+            rocket.flightParts = [];
+            rocket.debris = [];
+            rocket.explosions = [];
             gameState = 'building';
             launchBtn.disabled = false;
             undoBtn.disabled = true;
             resetBtn.disabled = false;
             stageBtn.disabled = true;
             modeLabel.textContent = 'BUILD MODE';
-            buildStatus.textContent = 'Select a part, then click the stack bay.';
+            buildStatus.textContent = 'Select a part, then click the build area.';
             document.getElementById('stat-altitude').textContent = '0';
             document.getElementById('stat-velocity').textContent = '0';
             document.getElementById('stat-phase').textContent = 'PAD';
