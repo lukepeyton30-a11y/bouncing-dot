@@ -284,7 +284,7 @@
                     <button type="button" class="flight-control action-button rounded-xl border border-cyan-400/50 bg-cyan-500/90 py-3 text-lg font-bold text-slate-950" data-control="thrust" aria-label="Thrust">↑</button>
                     <button type="button" class="flight-control action-button rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-lg text-slate-200" data-control="right" aria-label="Rotate right">↷</button>
                 </div>
-                <p class="mt-3 text-center text-xs text-slate-500">Hold the arrows or use the on-screen controls to steer.</p>
+                <p class="mt-3 text-center text-xs text-slate-500">WASD: W thrust, S reverse, A/D rotate.</p>
             </div>
         </div>
     </div>
@@ -730,16 +730,19 @@
         const EARTH_MASS = 5.972e24; // kg
         const EARTH_RADIUS = 6371000; // meters
         const SCALE = 100000; // meters per pixel
+        const MAX_FLIGHT_SPEED = 7;
+        const FLIGHT_MARGIN = 42;
 
         let keys = {};
         const controlKeys = {
             left: ['ArrowLeft', 'KeyA'],
             right: ['ArrowRight', 'KeyD'],
-            thrust: ['ArrowUp', 'KeyW', 'Space']
+            thrust: ['ArrowUp', 'KeyW', 'Space'],
+            reverse: ['ArrowDown', 'KeyS']
         };
         window.addEventListener('keydown', event => {
             keys[event.code] = true;
-            if (controlKeys.thrust.includes(event.code)) event.preventDefault();
+            if (Object.values(controlKeys).some(control => control.includes(event.code))) event.preventDefault();
         });
         window.addEventListener('keyup', event => keys[event.code] = false);
 
@@ -774,7 +777,7 @@
                 undoBtn.disabled = true;
                 resetBtn.disabled = true;
                 modeLabel.textContent = 'FLIGHT MODE';
-                buildStatus.textContent = 'Flight active. Use the arrow keys to steer and thrust.';
+                buildStatus.textContent = 'Flight active. Use W/S to thrust and reverse, A/D to rotate.';
                 rocket.position = { x: canvasWidth / 2, y: canvasHeight - 100 };
                 rocket.velocity = { x: 0, y: 0 };
                 rocket.rotation = -Math.PI/2; // pointing up
@@ -796,11 +799,13 @@
             const turningLeft = controlKeys.left.some(key => keys[key]);
             const turningRight = controlKeys.right.some(key => keys[key]);
             const thrusting = controlKeys.thrust.some(key => keys[key]);
+            const reversing = controlKeys.reverse.some(key => keys[key]);
             if (turningLeft) rocket.rotation -= 0.02;
             if (turningRight) rocket.rotation += 0.02;
-            if (thrusting) {
+            if (thrusting || reversing) {
                 // Apply thrust
-                const thrust = rocket.thrust / rocket.mass;
+                const thrustDirection = reversing ? -1 : 1;
+                const thrust = rocket.thrust / rocket.mass * thrustDirection;
                 rocket.velocity.x += Math.cos(rocket.rotation) * thrust * 0.016;
                 rocket.velocity.y += Math.sin(rocket.rotation) * thrust * 0.016;
             }
@@ -810,8 +815,9 @@
                 Math.pow(rocket.position.x - canvasWidth/2, 2) +
                 Math.pow(rocket.position.y - canvasHeight/2, 2)
             ) * SCALE;
+            const safeDistance = Math.max(distance, EARTH_RADIUS);
             
-            const gravity = G * EARTH_MASS / Math.pow(distance, 2);
+            const gravity = G * EARTH_MASS / Math.pow(safeDistance, 2);
             const angle = Math.atan2(
                 canvasHeight/2 - rocket.position.y,
                 canvasWidth/2 - rocket.position.x
@@ -820,9 +826,31 @@
             rocket.velocity.x += Math.cos(angle) * gravity * 0.016;
             rocket.velocity.y += Math.sin(angle) * gravity * 0.016;
 
+            const speed = Math.hypot(rocket.velocity.x, rocket.velocity.y);
+            if (speed > MAX_FLIGHT_SPEED) {
+                const speedScale = MAX_FLIGHT_SPEED / speed;
+                rocket.velocity.x *= speedScale;
+                rocket.velocity.y *= speedScale;
+            }
+
             // Update position
             rocket.position.x += rocket.velocity.x;
             rocket.position.y += rocket.velocity.y;
+
+            if (rocket.position.x < FLIGHT_MARGIN) {
+                rocket.position.x = FLIGHT_MARGIN;
+                rocket.velocity.x = Math.abs(rocket.velocity.x) * 0.65;
+            } else if (rocket.position.x > canvasWidth - FLIGHT_MARGIN) {
+                rocket.position.x = canvasWidth - FLIGHT_MARGIN;
+                rocket.velocity.x = -Math.abs(rocket.velocity.x) * 0.65;
+            }
+            if (rocket.position.y < FLIGHT_MARGIN) {
+                rocket.position.y = FLIGHT_MARGIN;
+                rocket.velocity.y = Math.abs(rocket.velocity.y) * 0.65;
+            } else if (rocket.position.y > canvasHeight - FLIGHT_MARGIN) {
+                rocket.position.y = canvasHeight - FLIGHT_MARGIN;
+                rocket.velocity.y = -Math.abs(rocket.velocity.y) * 0.65;
+            }
 
             // Draw rocket
             ctx.save();
@@ -837,7 +865,7 @@
             });
 
             // Draw engine exhaust when thrusting
-            if (thrusting) {
+            if (thrusting || reversing) {
                 ctx.strokeStyle = '#60A5FA';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
