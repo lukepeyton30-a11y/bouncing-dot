@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
+            min-height: 100vh;
             background: radial-gradient(circle at 18% 12%, rgba(56, 189, 248, 0.18), transparent 18%),
                         radial-gradient(circle at 82% 16%, rgba(168, 85, 247, 0.10), transparent 18%),
                         linear-gradient(180deg, #020617 0%, #020617 40%, #0f172a 100%);
@@ -50,6 +51,24 @@
             box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.28);
         }
 
+        .part-button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .action-button {
+            transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .action-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .action-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         .stat-card {
             background: rgba(15, 23, 42, 0.82);
             border: 1px solid rgba(148, 163, 184, 0.12);
@@ -70,20 +89,45 @@
             background-image: radial-gradient(rgba(255,255,255,0.18), transparent 2px), radial-gradient(rgba(255,255,255,0.1), transparent 1px);
             background-size: 110px 110px, 55px 55px;
             background-position: 0 0, 28px 28px;
+            cursor: crosshair;
+        }
+
+        @media (max-width: 1023px) {
+            body {
+                overflow: auto;
+            }
+
+            .canvas-shell {
+                min-height: 360px;
+            }
         }
     </style>
 </head>
-<body class="min-h-screen text-slate-100 antialiased relative overflow-hidden">
-    <a class="absolute left-4 top-4 z-50" href="/index.html">
-        <button class="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-200">← Back</button>
-    </a>
+<body class="min-h-screen text-slate-100 antialiased relative overflow-auto">
+    <header class="container mx-auto px-4 pt-5 flex items-center justify-between gap-4">
+        <a class="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-cyan-200 transition" href="/index.html">← Arcade</a>
+        <div class="text-right">
+            <p class="text-[0.68rem] uppercase tracking-[0.3em] text-cyan-300">Orbital workshop</p>
+            <h1 class="text-lg sm:text-xl font-bold text-white">Mini Orbiter</h1>
+        </div>
+    </header>
 
-    <div class="container mx-auto px-4 py-8 glass-panel rounded-[2rem] border border-cyan-500/10">
+    <main class="container mx-auto px-4 py-5 lg:py-6">
+        <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-sm text-slate-400">Assemble a craft, then see whether it can earn its orbit.</p>
+            </div>
+            <div id="build-status" class="text-sm text-cyan-200" aria-live="polite">Select a part, then click the blueprint.</div>
+        </div>
+    <div class="glass-panel rounded-[2rem] border border-cyan-500/10 p-4 sm:p-6">
         <div class="flex flex-col lg:flex-row gap-6">
             <!-- Build Area -->
             <div class="lg:w-1/4 space-y-4">
                 <div class="bg-slate-900/85 rounded-3xl p-5 border border-slate-700/40 shadow-xl shadow-cyan-500/5">
-                    <h2 class="text-xl font-bold mb-4 text-cyan-100">Parts</h2>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-cyan-100">Parts</h2>
+                        <span id="part-count" class="text-xs uppercase tracking-[0.2em] text-slate-500">0 placed</span>
+                    </div>
                     <div class="space-y-4">
                     <!-- Command & Control -->
                     <div>
@@ -218,24 +262,37 @@
                     </div>
                 </div>
 
-                <button id="launch-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
-                    Launch!
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="undo-btn" class="action-button border border-slate-600 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-xl" disabled>Undo</button>
+                    <button id="reset-btn" class="action-button border border-slate-600 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-xl">Reset</button>
+                </div>
+                <button id="launch-btn" class="action-button w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg shadow-cyan-500/20">
+                    Launch craft
                 </button>
             </div>
 
             <!-- Game Canvas -->
             <div class="lg:flex-1">
-                <div class="canvas-shell">
+                <div class="canvas-shell relative">
                     <canvas id="gameCanvas"></canvas>
+                    <div class="pointer-events-none absolute left-4 top-4 rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-xs text-slate-400">
+                        <span id="mode-label">BUILD MODE</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    </main>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const launchBtn = document.getElementById('launch-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const undoBtn = document.getElementById('undo-btn');
+        const buildStatus = document.getElementById('build-status');
+        const partCount = document.getElementById('part-count');
+        const modeLabel = document.getElementById('mode-label');
 
         // Set canvas size with good resolution
         let canvasWidth = 0;
@@ -264,6 +321,7 @@
 
         // Game state
         let gameState = 'building'; // 'building' or 'flying'
+        let selectedPart = null;
         let rocket = {
             parts: [],
             position: { x: 0, y: 0 },
@@ -481,12 +539,60 @@
             // Additional parts for other categories...
         };
 
+        function createBasicPart(name, mass, color, shape = 'box') {
+            return {
+                name,
+                mass,
+                width: 18,
+                height: 18,
+                color,
+                render: (x, y, rotation) => {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(rotation);
+                    ctx.fillStyle = color;
+                    if (shape === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 9, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillRect(-9, -9, 18, 18);
+                        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                        ctx.strokeRect(-9, -9, 18, 18);
+                    }
+                    ctx.restore();
+                }
+            };
+        }
+
+        Object.assign(PARTS, {
+            dockingPort: createBasicPart('Docking Port', 150, '#94a3b8', 'circle'),
+            hitchhiker: createBasicPart('Crew Module', 1200, '#f59e0b'),
+            rcs: createBasicPart('RCS', 200, '#38bdf8'),
+            decoupler: createBasicPart('Decoupler', 120, '#f97316'),
+            strut: createBasicPart('Strut', 40, '#64748b'),
+            noseCone: createBasicPart('Nose Cone', 180, '#e2e8f0'),
+            adapter: createBasicPart('Adapter', 240, '#a78bfa'),
+            radiator: createBasicPart('Radiator', 100, '#67e8f9'),
+            legs: createBasicPart('Landing Legs', 160, '#94a3b8'),
+            chute: createBasicPart('Parachute', 80, '#fb7185'),
+            heatshield: createBasicPart('Heat Shield', 300, '#f97316'),
+            airbrake: createBasicPart('Airbrake', 120, '#f43f5e'),
+            solar: createBasicPart('Solar Panel', 80, '#38bdf8'),
+            science: createBasicPart('Science Lab', 700, '#c084fc'),
+            antenna: createBasicPart('Antenna', 60, '#facc15'),
+            rtg: createBasicPart('RTG', 180, '#fb923c'),
+            goo: createBasicPart('Goo Tank', 100, '#4ade80'),
+            sensor: createBasicPart('Sensors', 70, '#22d3ee')
+        });
+
         // Handle part selection
         document.querySelectorAll('.part-button').forEach(button => {
             button.addEventListener('click', () => {
                 document.querySelectorAll('.part-button').forEach(b => b.classList.remove('selected'));
                 button.classList.add('selected');
                 selectedPart = button.dataset.part;
+                buildStatus.textContent = `${PARTS[selectedPart].name} selected. Click the blueprint to place it.`;
             });
         });
 
@@ -498,10 +604,12 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
+            const snappedX = Math.round((x - canvasWidth / 2) / 20) * 20;
+            const snappedY = Math.round((y - canvasHeight / 2) / 20) * 20;
             rocket.parts.push({
                 type: selectedPart,
-                x: x - canvasWidth / 4,
-                y: y - canvasHeight / 2
+                x: snappedX,
+                y: snappedY
             });
 
             updateRocketStats();
@@ -523,6 +631,8 @@
 
             rocket.mass = mass;
             rocket.thrust = thrust;
+            partCount.textContent = `${rocket.parts.length} placed`;
+            undoBtn.disabled = rocket.parts.length === 0;
 
             // Update UI
             document.getElementById('stat-mass').textContent = (mass/1000).toFixed(1);
@@ -560,7 +670,7 @@
             }
 
             // Draw rocket parts
-            const buildCenter = { x: canvasWidth / 4, y: canvasHeight / 2 };
+            const buildCenter = { x: canvasWidth / 2, y: canvasHeight / 2 };
             rocket.parts.forEach(part => {
                 const partDef = PARTS[part.type];
                 if (partDef && partDef.render) {
@@ -581,10 +691,14 @@
 
         // Launch button
         launchBtn.addEventListener('click', () => {
-            if (rocket.parts.length > 0) {
+            if (rocket.parts.length > 0 && rocket.mass > 0) {
                 gameState = 'flying';
                 launchBtn.disabled = true;
-                rocket.position = { x: canvasWidth / 4, y: canvasHeight - 100 };
+                undoBtn.disabled = true;
+                resetBtn.disabled = true;
+                modeLabel.textContent = 'FLIGHT MODE';
+                buildStatus.textContent = 'Flight active. Use the arrow keys to steer and thrust.';
+                rocket.position = { x: canvasWidth / 2, y: canvasHeight - 100 };
                 rocket.velocity = { x: 0, y: 0 };
                 rocket.rotation = -Math.PI/2; // pointing up
                 requestAnimationFrame(updateFlight);
@@ -678,6 +792,33 @@
 
             requestAnimationFrame(updateFlight);
         }
+
+        undoBtn.addEventListener('click', () => {
+            if (gameState !== 'building') return;
+            rocket.parts.pop();
+            updateRocketStats();
+            drawBuildMode();
+            buildStatus.textContent = rocket.parts.length ? 'Last part removed.' : 'Select a part, then click the blueprint.';
+        });
+
+        resetBtn.addEventListener('click', () => {
+            rocket.parts = [];
+            rocket.position = { x: 0, y: 0 };
+            rocket.velocity = { x: 0, y: 0 };
+            rocket.mass = 0;
+            rocket.thrust = 0;
+            gameState = 'building';
+            launchBtn.disabled = false;
+            undoBtn.disabled = true;
+            resetBtn.disabled = false;
+            modeLabel.textContent = 'BUILD MODE';
+            buildStatus.textContent = 'Select a part, then click the blueprint.';
+            document.getElementById('stat-altitude').textContent = '0';
+            document.getElementById('stat-velocity').textContent = '0';
+            document.getElementById('stat-period').textContent = 'N/A';
+            updateRocketStats();
+            drawBuildMode();
+        });
 
         // Initial draw
         drawBuildMode();
