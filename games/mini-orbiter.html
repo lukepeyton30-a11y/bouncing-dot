@@ -272,7 +272,7 @@
                     Launch vehicle
                 </button>
                 <button id="stage-btn" class="action-button w-full border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/20 text-amber-200 font-semibold py-3 px-4 rounded-xl" disabled>
-                    Activate next stage
+                    Separate stage
                 </button>
             </div>
 
@@ -347,8 +347,7 @@
             activeStage: 1,
             stageCount: 1,
             flightParts: [],
-            debris: [],
-            explosions: []
+            debris: []
         };
 
         function metalGradient(top, bottom, left = '#f8fafc', right = '#64748b') {
@@ -736,7 +735,8 @@
             rocket.maxFuel = maxFuel;
             rocket.stageCount = stageCount;
             rocket.activeStage = Math.min(rocket.activeStage, rocket.stageCount);
-            partCount.textContent = `${rocket.parts.length} parts`;
+            const connectedCount = findConnectedParts().size;
+            partCount.textContent = `${connectedCount}/${rocket.parts.length} connected`;
             undoBtn.disabled = rocket.parts.length === 0;
 
             // Update UI
@@ -853,25 +853,41 @@
 
         function findConnectedParts() {
             if (!rocket.parts.length) return new Set();
-            const anchorIndex = rocket.parts.findIndex(part => part.type === 'command' || part.type === 'probe');
-            const connected = new Set([anchorIndex >= 0 ? anchorIndex : 0]);
-            let changed = true;
-            while (changed) {
-                changed = false;
-                rocket.parts.forEach((part, index) => {
-                    if (connected.has(index)) return;
-                    const touchesConnected = rocket.parts.some((other, otherIndex) => {
-                        if (!connected.has(otherIndex)) return false;
-                        const distance = Math.hypot(part.x - other.x, part.y - other.y);
-                        return distance <= 34;
+            const components = [];
+            const remaining = new Set(rocket.parts.map((_, index) => index));
+            while (remaining.size) {
+                const component = new Set([remaining.values().next().value]);
+                remaining.delete(component.values().next().value);
+                let changed = true;
+                while (changed) {
+                    changed = false;
+                    rocket.parts.forEach((part, index) => {
+                        if (!remaining.has(index)) return;
+                        const touchesComponent = rocket.parts.some((other, otherIndex) => {
+                            if (!component.has(otherIndex)) return false;
+                            const partDef = PARTS[part.type] || {};
+                            const otherDef = PARTS[other.type] || {};
+                            const connectionDistance = Math.max(
+                                28,
+                                ((partDef.width || 18) + (otherDef.width || 18)) / 2 + 8
+                            );
+                            return Math.hypot(part.x - other.x, part.y - other.y) <= connectionDistance;
+                        });
+                        if (touchesComponent) {
+                            component.add(index);
+                            remaining.delete(index);
+                            changed = true;
+                        }
                     });
-                    if (touchesConnected) {
-                        connected.add(index);
-                        changed = true;
-                    }
-                });
+                }
+                components.push(component);
             }
-            return connected;
+
+            const anchored = components.find(component => [...component].some(index => {
+                const type = rocket.parts[index].type;
+                return type === 'command' || type === 'probe';
+            }));
+            return anchored || components.sort((left, right) => right.size - left.size)[0];
         }
 
         function prepareFlightAssembly() {
@@ -897,36 +913,18 @@
             }
         }
 
-        function triggerExplosion(x, y, radius = 18) {
-            rocket.explosions.push({ x, y, radius, life: 1 });
-        }
-
         function updateDebris() {
             rocket.debris = rocket.debris.filter(debris => {
                 debris.position.x += debris.velocity.x;
                 debris.position.y += debris.velocity.y;
                 debris.velocity.y += 0.012;
                 debris.rotation += debris.spin;
-                const hitCraft = rocket.flightParts.some(part => {
-                    const partX = rocket.position.x + part.x;
-                    const partY = rocket.position.y + part.y;
-                    return Math.hypot(debris.position.x - partX, debris.position.y - partY) < 24;
-                });
-                if (hitCraft) {
-                    triggerExplosion(debris.position.x, debris.position.y, 26);
-                    return false;
-                }
                 return debris.position.x > -80 && debris.position.x < canvasWidth + 80 &&
                     debris.position.y > -80 && debris.position.y < canvasHeight + 80;
             });
-            rocket.explosions = rocket.explosions.filter(explosion => {
-                explosion.life -= 0.035;
-                explosion.radius += 1.4;
-                return explosion.life > 0;
-            });
         }
 
-        function drawDebrisAndExplosions() {
+        function drawDebris() {
             rocket.debris.forEach(debris => {
                 const partDef = PARTS[debris.type];
                 if (partDef && partDef.render) {
@@ -935,19 +933,6 @@
                     partDef.render(debris.position.x, debris.position.y, debris.rotation);
                     ctx.restore();
                 }
-            });
-            rocket.explosions.forEach(explosion => {
-                ctx.save();
-                ctx.globalAlpha = explosion.life;
-                const glow = ctx.createRadialGradient(explosion.x, explosion.y, 2, explosion.x, explosion.y, explosion.radius);
-                glow.addColorStop(0, '#fff7ed');
-                glow.addColorStop(0.3, '#fbbf24');
-                glow.addColorStop(1, 'rgba(239,68,68,0)');
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
             });
         }
 
@@ -972,7 +957,6 @@
                 rocket.position = { x: canvasWidth / 2, y: canvasHeight - 220 };
                 rocket.velocity = { x: 0, y: 0 };
                 rocket.rotation = -Math.PI/2; // pointing up
-                rocket.explosions = [];
                 prepareFlightAssembly();
                 requestAnimationFrame(updateFlight);
             }
@@ -980,9 +964,28 @@
 
         function advanceStage() {
             if (gameState !== 'flying' || rocket.activeStage >= rocket.stageCount) return;
-            rocket.activeStage += 1;
+            const spentStage = rocket.activeStage;
+            const nextStage = spentStage + 1;
+            const separatingParts = rocket.flightParts.filter(part => part.stage === spentStage);
+            separatingParts.forEach((part, index) => {
+                rocket.debris.push({
+                    ...part,
+                    position: {
+                        x: rocket.position.x + part.x,
+                        y: rocket.position.y + part.y
+                    },
+                    velocity: {
+                        x: rocket.velocity.x + (index % 2 ? 0.8 : -0.8),
+                        y: rocket.velocity.y + 0.5
+                    },
+                    rotation: 0,
+                    spin: index % 2 ? 0.025 : -0.025
+                });
+            });
+            rocket.flightParts = rocket.flightParts.filter(part => part.stage !== spentStage);
+            rocket.activeStage = nextStage;
             updateRocketStats(true);
-            buildStatus.textContent = `Stage ${rocket.activeStage} active. Thrust available.`;
+            buildStatus.textContent = `Stage ${rocket.activeStage} active. Stage ${spentStage} separated.`;
             if (rocket.activeStage >= rocket.stageCount) stageBtn.disabled = true;
         }
 
@@ -1088,7 +1091,7 @@
             }
             
             ctx.restore();
-            drawDebrisAndExplosions();
+            drawDebris();
 
             // Update flight data
             const altitude = (Math.sqrt(
@@ -1130,7 +1133,6 @@
             rocket.stageCount = 1;
             rocket.flightParts = [];
             rocket.debris = [];
-            rocket.explosions = [];
             gameState = 'building';
             launchBtn.disabled = false;
             undoBtn.disabled = true;
