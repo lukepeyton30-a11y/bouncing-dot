@@ -704,7 +704,10 @@
                 stage
             });
 
-            if (selectedPart === 'decoupler') rocket.stageCount += 1;
+            if (selectedPart === 'decoupler') {
+                rocket.stageCount += 1;
+                buildStatus.textContent = `Decoupler added. New parts will belong to stage ${rocket.stageCount}.`;
+            }
 
             updateRocketStats();
             drawBuildMode();
@@ -716,7 +719,7 @@
             let thrust = 0;
             let fuel = 0;
             let maxFuel = 0;
-            let stageCount = 1;
+            let stageCount = Math.max(1, rocket.stageCount);
 
             rocket.parts.forEach(part => {
                 const partDef = PARTS[part.type];
@@ -733,7 +736,7 @@
             rocket.thrust = thrust;
             if (!preserveFuel) rocket.fuel = fuel;
             rocket.maxFuel = maxFuel;
-            rocket.stageCount = stageCount;
+            rocket.stageCount = Math.max(stageCount, rocket.stageCount);
             rocket.activeStage = Math.min(rocket.activeStage, rocket.stageCount);
             const connectedCount = findConnectedParts().size;
             partCount.textContent = `${connectedCount}/${rocket.parts.length} connected`;
@@ -783,6 +786,27 @@
                 if (partDef && partDef.render) {
                     partDef.render(buildCenter.x + part.x, buildCenter.y + part.y, 0);
                 }
+            });
+
+            const connected = findConnectedParts();
+            rocket.parts.forEach((part, index) => {
+                if (!connected.has(index)) return;
+                const partDef = PARTS[part.type] || {};
+                const connectionRadius = Math.max(16, ((partDef.width || 18) / 2) + 5);
+                ctx.strokeStyle = 'rgba(34, 211, 238, 0.5)';
+                ctx.lineWidth = 2;
+                rocket.parts.forEach((other, otherIndex) => {
+                    if (otherIndex <= index || !connected.has(otherIndex)) return;
+                    const otherDef = PARTS[other.type] || {};
+                    const distance = Math.hypot(part.x - other.x, part.y - other.y);
+                    const limit = connectionRadius + Math.max(16, ((otherDef.width || 18) / 2) + 5);
+                    if (distance <= limit) {
+                        ctx.beginPath();
+                        ctx.moveTo(buildCenter.x + part.x, buildCenter.y + part.y);
+                        ctx.lineTo(buildCenter.x + other.x, buildCenter.y + other.y);
+                        ctx.stroke();
+                    }
+                });
             });
 
             if (gameState === 'building' && selectedPart && cursorPosition) {
