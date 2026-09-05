@@ -1232,41 +1232,44 @@
             if (!engine) return;
 
             const engineDef = PARTS[engine.type];
-            const nozzleY = engine.y + (engineDef.height || 20) / 2;
+            const activeStageParts = rocket.flightParts.filter(part => part.stage === rocket.activeStage);
+            const stageCenterX = activeStageParts.reduce((sum, part) => sum + part.x, 0) / activeStageParts.length;
+            const stageCenterY = activeStageParts.reduce((sum, part) => sum + part.y, 0) / activeStageParts.length;
+            const nozzleY = stageCenterY + (engineDef.height || 20) / 2;
             const flameLength = 78;
             const flameWidth = Math.max(8, Math.min(22, (engineDef.width || 14) * 0.9));
 
-            const outerFlame = ctx.createLinearGradient(engine.x, nozzleY, engine.x, nozzleY + flameLength);
+            const outerFlame = ctx.createLinearGradient(stageCenterX, nozzleY, stageCenterX, nozzleY + flameLength);
             outerFlame.addColorStop(0, reversing ? '#fff7ed' : '#fff1a8');
             outerFlame.addColorStop(0.18, '#fb923c');
             outerFlame.addColorStop(0.58, '#ef4444');
             outerFlame.addColorStop(1, 'rgba(127, 29, 29, 0)');
             ctx.fillStyle = outerFlame;
             ctx.beginPath();
-            ctx.moveTo(engine.x - flameWidth / 2, nozzleY);
-            ctx.quadraticCurveTo(engine.x - flameWidth * 0.72, nozzleY + flameLength * 0.45, engine.x - 2, nozzleY + flameLength);
-            ctx.quadraticCurveTo(engine.x + flameWidth * 0.72, nozzleY + flameLength * 0.45, engine.x + flameWidth / 2, nozzleY);
+            ctx.moveTo(stageCenterX - flameWidth / 2, nozzleY);
+            ctx.quadraticCurveTo(stageCenterX - flameWidth * 0.72, nozzleY + flameLength * 0.45, stageCenterX - 2, nozzleY + flameLength);
+            ctx.quadraticCurveTo(stageCenterX + flameWidth * 0.72, nozzleY + flameLength * 0.45, stageCenterX + flameWidth / 2, nozzleY);
             ctx.closePath();
             ctx.fill();
 
             const coreLength = flameLength * 0.62;
-            const core = ctx.createLinearGradient(engine.x, nozzleY, engine.x, nozzleY + coreLength);
+            const core = ctx.createLinearGradient(stageCenterX, nozzleY, stageCenterX, nozzleY + coreLength);
             core.addColorStop(0, '#ffffff');
             core.addColorStop(0.28, '#fef3c7');
             core.addColorStop(0.75, '#fbbf24');
             core.addColorStop(1, 'rgba(249, 115, 22, 0)');
             ctx.fillStyle = core;
             ctx.beginPath();
-            ctx.moveTo(engine.x - flameWidth * 0.22, nozzleY);
-            ctx.quadraticCurveTo(engine.x - flameWidth * 0.3, nozzleY + coreLength * 0.45, engine.x, nozzleY + coreLength);
-            ctx.quadraticCurveTo(engine.x + flameWidth * 0.3, nozzleY + coreLength * 0.45, engine.x + flameWidth * 0.22, nozzleY);
+            ctx.moveTo(stageCenterX - flameWidth * 0.22, nozzleY);
+            ctx.quadraticCurveTo(stageCenterX - flameWidth * 0.3, nozzleY + coreLength * 0.45, stageCenterX, nozzleY + coreLength);
+            ctx.quadraticCurveTo(stageCenterX + flameWidth * 0.3, nozzleY + coreLength * 0.45, stageCenterX + flameWidth * 0.22, nozzleY);
             ctx.closePath();
             ctx.fill();
 
             ctx.fillStyle = 'rgba(254, 215, 170, 0.38)';
             ctx.beginPath();
-            ctx.arc(engine.x - flameWidth * 0.7, nozzleY + flameLength * 0.46, 3, 0, Math.PI * 2);
-            ctx.arc(engine.x + flameWidth * 0.72, nozzleY + flameLength * 0.62, 2.5, 0, Math.PI * 2);
+            ctx.arc(stageCenterX - flameWidth * 0.7, nozzleY + flameLength * 0.46, 3, 0, Math.PI * 2);
+            ctx.arc(stageCenterX + flameWidth * 0.72, nozzleY + flameLength * 0.62, 2.5, 0, Math.PI * 2);
             ctx.fill();
         }
 
