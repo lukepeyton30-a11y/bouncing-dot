@@ -75,7 +75,7 @@
         }
 
         .canvas-shell {
-            min-height: 680px;
+            min-height: 900px;
             border-radius: 1.5rem;
             border: 1px solid rgba(56, 189, 248, 0.12);
             overflow: hidden;
@@ -99,7 +99,7 @@
             }
 
             .canvas-shell {
-                min-height: 680px;
+                min-height: 900px;
             }
         }
     </style>
@@ -315,7 +315,7 @@
         function resizeCanvas() {
             const container = canvas.parentElement;
             const displayWidth = container.clientWidth;
-            const displayHeight = Math.max(680, Math.min(window.innerHeight - 140, displayWidth * 1.05));
+            const displayHeight = Math.max(900, Math.min(window.innerHeight - 100, displayWidth * 1.35));
             const ratio = window.devicePixelRatio || 1;
 
             canvasWidth = displayWidth;
@@ -943,6 +943,8 @@
         const EARTH_MASS = 5.972e24; // kg
         const EARTH_RADIUS = 6371000; // meters
         const SCALE = 100000; // meters per pixel
+        const BLACK_HOLE_MASS = 4.5e25;
+        const BLACK_HOLE_RADIUS = 46;
         const MAX_FLIGHT_SPEED = 4;
         const FLIGHT_MARGIN = 42;
         const COAST_DRAG = 0.985;
@@ -989,6 +991,45 @@
                 ctx.arc(x, y, star.size, 0, Math.PI * 2);
                 ctx.fill();
             });
+
+            const blackHoleX = canvasWidth / 2;
+            const blackHoleY = canvasHeight / 2;
+            const diskPulse = 0.92 + Math.sin(Date.now() / 420) * 0.08;
+            ctx.save();
+            ctx.translate(blackHoleX, blackHoleY);
+            ctx.rotate(-0.18);
+            ctx.globalCompositeOperation = 'screen';
+            ctx.scale(1, 0.34);
+            ctx.beginPath();
+            ctx.arc(0, 0, 92 * diskPulse, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.18)';
+            ctx.lineWidth = 18;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, 0, 72 * diskPulse, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(253, 224, 71, 0.7)';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, 0, 57 * diskPulse, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 247, 237, 0.9)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+
+            const holeGlow = ctx.createRadialGradient(blackHoleX, blackHoleY, BLACK_HOLE_RADIUS * 0.7, blackHoleX, blackHoleY, 88);
+            holeGlow.addColorStop(0, '#000000');
+            holeGlow.addColorStop(0.58, '#000000');
+            holeGlow.addColorStop(0.72, 'rgba(15, 23, 42, 0.9)');
+            holeGlow.addColorStop(1, 'rgba(249, 115, 22, 0)');
+            ctx.fillStyle = holeGlow;
+            ctx.beginPath();
+            ctx.arc(blackHoleX, blackHoleY, 88, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(blackHoleX, blackHoleY, BLACK_HOLE_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
 
             const speed = Math.hypot(rocket.velocity.x, rocket.velocity.y);
             if (gameState === 'flying' && speed > 1.2) {
@@ -1283,7 +1324,7 @@
             const safeDistance = Math.max(distance, EARTH_RADIUS);
 
             if (rocket.hasMoved) {
-                const gravity = G * EARTH_MASS / Math.pow(safeDistance, 2);
+                const gravity = G * BLACK_HOLE_MASS / Math.pow(safeDistance, 2);
                 const angle = Math.atan2(
                     canvasHeight/2 - rocket.position.y,
                     canvasWidth/2 - rocket.position.x
