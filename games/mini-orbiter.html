@@ -945,7 +945,8 @@
         const MAX_FLIGHT_SPEED = 4;
         const FLIGHT_MARGIN = 42;
         const COAST_DRAG = 0.985;
-        const BRAKE_DRAG = 1.25;
+        const BRAKE_DRAG = 0.9;
+        let lastFlightTime = 0;
         const spaceStars = Array.from({ length: 180 }, (_, index) => {
             const seed = (index * 9301 + 49297) % 233280;
             const secondSeed = (seed * 9301 + 49297) % 233280;
@@ -1200,6 +1201,7 @@
                 rocket.rotation = 0;
                 rocket.spaceOffset = { x: 0, y: 0 };
                 rocket.hasMoved = false;
+                lastFlightTime = 0;
                 prepareFlightAssembly();
                 requestAnimationFrame(updateFlight);
             }
@@ -1235,8 +1237,12 @@
         stageBtn.addEventListener('click', advanceStage);
 
         // Flight mode update
-        function updateFlight() {
+        function updateFlight(timestamp) {
             if (gameState !== 'flying') return;
+
+            if (!lastFlightTime) lastFlightTime = timestamp;
+            const frameScale = Math.min(2, Math.max(0.25, (timestamp - lastFlightTime) / 16.667));
+            lastFlightTime = timestamp;
 
             // Handle input
             const turningLeft = controlKeys.left.some(key => keys[key]);
@@ -1252,8 +1258,8 @@
                 const thrust = rocket.thrust / rocket.mass * thrustDirection;
                 const thrustAxisX = Math.sin(rocket.rotation);
                 const thrustAxisY = -Math.cos(rocket.rotation);
-                rocket.velocity.x += thrustAxisX * thrust * 0.016;
-                rocket.velocity.y += thrustAxisY * thrust * 0.016;
+                rocket.velocity.x += thrustAxisX * thrust * 0.016 * frameScale;
+                rocket.velocity.y += thrustAxisY * thrust * 0.016 * frameScale;
                 rocket.fuel = Math.max(0, rocket.fuel - 0.35);
                 document.getElementById('stat-fuel').textContent = rocket.maxFuel
                     ? Math.round((rocket.fuel / rocket.maxFuel) * 100)
@@ -1282,8 +1288,8 @@
                     canvasWidth/2 - rocket.position.x
                 );
 
-                rocket.velocity.x += Math.cos(angle) * gravity * 0.016;
-                rocket.velocity.y += Math.sin(angle) * gravity * 0.016;
+                rocket.velocity.x += Math.cos(angle) * gravity * 0.016 * frameScale;
+                rocket.velocity.y += Math.sin(angle) * gravity * 0.016 * frameScale;
             }
 
             const speed = Math.hypot(rocket.velocity.x, rocket.velocity.y);
@@ -1294,8 +1300,8 @@
             }
 
             // Update position
-            rocket.position.x += rocket.velocity.x;
-            rocket.position.y += rocket.velocity.y;
+            rocket.position.x += rocket.velocity.x * frameScale;
+            rocket.position.y += rocket.velocity.y * frameScale;
 
             if (rocket.position.x < FLIGHT_MARGIN) {
                 rocket.position.x = FLIGHT_MARGIN;
@@ -1377,6 +1383,7 @@
             rocket.debris = [];
             rocket.spaceOffset = { x: 0, y: 0 };
             rocket.hasMoved = false;
+            lastFlightTime = 0;
             gameState = 'building';
             launchBtn.disabled = false;
             undoBtn.disabled = true;
