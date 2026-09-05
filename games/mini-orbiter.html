@@ -279,6 +279,12 @@
                         <span id="mode-label">BUILD MODE</span>
                     </div>
                 </div>
+                <div id="flight-controls" class="mt-4 grid grid-cols-3 gap-3 sm:max-w-md sm:mx-auto" aria-label="Flight controls">
+                    <button type="button" class="flight-control action-button rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-lg text-slate-200" data-control="left" aria-label="Rotate left">↶</button>
+                    <button type="button" class="flight-control action-button rounded-xl border border-cyan-400/50 bg-cyan-500/90 py-3 text-lg font-bold text-slate-950" data-control="thrust" aria-label="Thrust">↑</button>
+                    <button type="button" class="flight-control action-button rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-lg text-slate-200" data-control="right" aria-label="Rotate right">↷</button>
+                </div>
+                <p class="mt-3 text-center text-xs text-slate-500">Hold the arrows or use the on-screen controls to steer.</p>
             </div>
         </div>
     </div>
@@ -293,6 +299,7 @@
         const buildStatus = document.getElementById('build-status');
         const partCount = document.getElementById('part-count');
         const modeLabel = document.getElementById('mode-label');
+        const flightControls = document.querySelectorAll('.flight-control');
 
         // Set canvas size with good resolution
         let canvasWidth = 0;
@@ -725,11 +732,42 @@
         const SCALE = 100000; // meters per pixel
 
         let keys = {};
-        window.addEventListener('keydown', e => keys[e.code] = true);
-        window.addEventListener('keyup', e => keys[e.code] = false);
+        const controlKeys = {
+            left: ['ArrowLeft', 'KeyA'],
+            right: ['ArrowRight', 'KeyD'],
+            thrust: ['ArrowUp', 'KeyW', 'Space']
+        };
+        window.addEventListener('keydown', event => {
+            keys[event.code] = true;
+            if (controlKeys.thrust.includes(event.code)) event.preventDefault();
+        });
+        window.addEventListener('keyup', event => keys[event.code] = false);
+
+        flightControls.forEach(control => {
+            const action = control.dataset.control;
+            const setControl = (active, event) => {
+                if (event) event.preventDefault();
+                control.classList.toggle('ring-2', active);
+                control.classList.toggle('ring-cyan-300', active);
+                controlKeys[action].forEach(key => keys[key] = active);
+            };
+            control.addEventListener('pointerdown', event => {
+                control.setPointerCapture(event.pointerId);
+                setControl(true, event);
+            });
+            control.addEventListener('pointerup', event => setControl(false, event));
+            control.addEventListener('pointercancel', event => setControl(false, event));
+            control.addEventListener('pointerleave', event => {
+                if (event.buttons === 0) setControl(false, event);
+            });
+        });
 
         // Launch button
         launchBtn.addEventListener('click', () => {
+            if (rocket.thrust <= 0) {
+                buildStatus.textContent = 'Add an engine before launching.';
+                return;
+            }
             if (rocket.parts.length > 0 && rocket.mass > 0) {
                 gameState = 'flying';
                 launchBtn.disabled = true;
@@ -755,9 +793,12 @@
             // ... (background drawing code remains the same)
 
             // Handle input
-            if (keys.ArrowLeft) rocket.rotation -= 0.02;
-            if (keys.ArrowRight) rocket.rotation += 0.02;
-            if (keys.ArrowUp) {
+            const turningLeft = controlKeys.left.some(key => keys[key]);
+            const turningRight = controlKeys.right.some(key => keys[key]);
+            const thrusting = controlKeys.thrust.some(key => keys[key]);
+            if (turningLeft) rocket.rotation -= 0.02;
+            if (turningRight) rocket.rotation += 0.02;
+            if (thrusting) {
                 // Apply thrust
                 const thrust = rocket.thrust / rocket.mass;
                 rocket.velocity.x += Math.cos(rocket.rotation) * thrust * 0.016;
@@ -796,7 +837,7 @@
             });
 
             // Draw engine exhaust when thrusting
-            if (keys.ArrowUp) {
+            if (thrusting) {
                 ctx.strokeStyle = '#60A5FA';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
