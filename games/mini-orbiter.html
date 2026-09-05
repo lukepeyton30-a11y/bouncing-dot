@@ -980,7 +980,7 @@
                 buildStatus.textContent = 'Flight active. Use W/S to thrust and reverse, A/D to rotate.';
                 rocket.position = { x: canvasWidth / 2, y: canvasHeight - 220 };
                 rocket.velocity = { x: 0, y: 0 };
-                rocket.rotation = -Math.PI/2; // pointing up
+                rocket.rotation = 0;
                 prepareFlightAssembly();
                 requestAnimationFrame(updateFlight);
             }
@@ -1036,8 +1036,10 @@
                 // Apply thrust
                 const thrustDirection = reversing ? -1 : 1;
                 const thrust = rocket.thrust / rocket.mass * thrustDirection;
-                rocket.velocity.x += Math.cos(rocket.rotation) * thrust * 0.016;
-                rocket.velocity.y += Math.sin(rocket.rotation) * thrust * 0.016;
+                const thrustAxisX = Math.sin(rocket.rotation);
+                const thrustAxisY = -Math.cos(rocket.rotation);
+                rocket.velocity.x += thrustAxisX * thrust * 0.016;
+                rocket.velocity.y += thrustAxisY * thrust * 0.016;
                 rocket.fuel = Math.max(0, rocket.fuel - 0.35);
                 document.getElementById('stat-fuel').textContent = rocket.maxFuel
                     ? Math.round((rocket.fuel / rocket.maxFuel) * 100)
@@ -1106,12 +1108,19 @@
 
             // Draw engine exhaust when thrusting
             if (thrusting || reversing) {
-                ctx.strokeStyle = '#60A5FA';
-                ctx.lineWidth = 2;
+                const flameLength = 28 + Math.sin(Date.now() / 55) * 7;
+                const flameWidth = reversing ? 7 : 11;
+                const flame = ctx.createLinearGradient(0, 15, 0, 15 + flameLength);
+                flame.addColorStop(0, reversing ? '#fbbf24' : '#fef3c7');
+                flame.addColorStop(0.35, reversing ? '#f97316' : '#38bdf8');
+                flame.addColorStop(1, 'rgba(14, 165, 233, 0)');
+                ctx.fillStyle = flame;
                 ctx.beginPath();
-                ctx.moveTo(0, 15);
-                ctx.lineTo(0, 30);
-                ctx.stroke();
+                ctx.moveTo(-flameWidth / 2, 15);
+                ctx.lineTo(flameWidth / 2, 15);
+                ctx.lineTo(0, 15 + flameLength);
+                ctx.closePath();
+                ctx.fill();
             }
             
             ctx.restore();
