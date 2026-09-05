@@ -75,6 +75,7 @@
         }
 
         .canvas-shell {
+            min-height: 680px;
             border-radius: 1.5rem;
             border: 1px solid rgba(56, 189, 248, 0.12);
             overflow: hidden;
@@ -98,7 +99,7 @@
             }
 
             .canvas-shell {
-                min-height: 360px;
+                min-height: 680px;
             }
         }
     </style>
@@ -314,7 +315,7 @@
         function resizeCanvas() {
             const container = canvas.parentElement;
             const displayWidth = container.clientWidth;
-            const displayHeight = Math.min(window.innerHeight - 220, displayWidth * 0.72);
+            const displayHeight = Math.max(680, Math.min(window.innerHeight - 140, displayWidth * 1.05));
             const ratio = window.devicePixelRatio || 1;
 
             canvasWidth = displayWidth;
@@ -945,7 +946,7 @@
         const MAX_FLIGHT_SPEED = 4;
         const FLIGHT_MARGIN = 42;
         const COAST_DRAG = 0.985;
-        const BRAKE_DRAG = 0.9;
+        const BRAKE_DRAG = 0.0001;
         let lastFlightTime = 0;
         const spaceStars = Array.from({ length: 180 }, (_, index) => {
             const seed = (index * 9301 + 49297) % 233280;
