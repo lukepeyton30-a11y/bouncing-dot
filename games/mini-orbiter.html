@@ -317,7 +317,6 @@
         }
 
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
 
         // Game state
         let gameState = 'building'; // 'building' or 'flying'
@@ -586,6 +585,8 @@
             goo: createBasicPart('Goo Tank', 100, '#4ade80'),
             sensor: createBasicPart('Sensors', 70, '#22d3ee')
         });
+
+        resizeCanvas();
 
         // Handle part selection
         document.querySelectorAll('.part-button').forEach(button => {
