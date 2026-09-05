@@ -730,8 +730,10 @@
         const EARTH_MASS = 5.972e24; // kg
         const EARTH_RADIUS = 6371000; // meters
         const SCALE = 100000; // meters per pixel
-        const MAX_FLIGHT_SPEED = 7;
+        const MAX_FLIGHT_SPEED = 4;
         const FLIGHT_MARGIN = 42;
+        const COAST_DRAG = 0.985;
+        const BRAKE_DRAG = 0.9;
 
         let keys = {};
         const controlKeys = {
@@ -809,6 +811,10 @@
                 rocket.velocity.x += Math.cos(rocket.rotation) * thrust * 0.016;
                 rocket.velocity.y += Math.sin(rocket.rotation) * thrust * 0.016;
             }
+
+            const drag = reversing ? BRAKE_DRAG : COAST_DRAG;
+            rocket.velocity.x *= drag;
+            rocket.velocity.y *= drag;
 
             // Apply gravity
             const distance = Math.sqrt(
