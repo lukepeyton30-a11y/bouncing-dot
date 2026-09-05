@@ -107,7 +107,7 @@
     <header class="container mx-auto px-4 pt-5 flex items-center justify-between gap-4">
         <a class="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-cyan-200 transition" href="/index.html">← Arcade</a>
         <div class="text-right">
-            <p class="text-[0.68rem] uppercase tracking-[0.3em] text-cyan-300">Orbital workshop</p>
+            <p class="text-[0.68rem] uppercase tracking-[0.3em] text-cyan-300">Launch complex</p>
             <h1 class="text-lg sm:text-xl font-bold text-white">Mini Orbiter</h1>
         </div>
     </header>
@@ -115,9 +115,9 @@
     <main class="container mx-auto px-4 py-5 lg:py-6">
         <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                <p class="text-sm text-slate-400">Assemble a craft, then see whether it can earn its orbit.</p>
+                <p class="text-sm text-slate-400">Stack a launch vehicle, stage it cleanly, and push for altitude.</p>
             </div>
-            <div id="build-status" class="text-sm text-cyan-200" aria-live="polite">Select a part, then click the blueprint.</div>
+            <div id="build-status" class="text-sm text-cyan-200" aria-live="polite">Select a part, then click the stack bay.</div>
         </div>
     <div class="glass-panel rounded-[2rem] border border-cyan-500/10 p-4 sm:p-6">
         <div class="flex flex-col lg:flex-row gap-6">
@@ -126,7 +126,7 @@
                 <div class="bg-slate-900/85 rounded-3xl p-5 border border-slate-700/40 shadow-xl shadow-cyan-500/5">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-bold text-cyan-100">Parts</h2>
-                        <span id="part-count" class="text-xs uppercase tracking-[0.2em] text-slate-500">0 placed</span>
+                        <span id="part-count" class="text-xs uppercase tracking-[0.2em] text-slate-500">0 staged</span>
                     </div>
                     <div class="space-y-4">
                     <!-- Command & Control -->
@@ -250,6 +250,8 @@
                         <div>Mass: <span id="stat-mass">0</span> kg</div>
                         <div>Thrust: <span id="stat-thrust">0</span> kN</div>
                         <div>Delta-v: <span id="stat-deltav">0</span> m/s</div>
+                        <div>Fuel: <span id="stat-fuel">0</span>%</div>
+                        <div>Stage: <span id="stat-stage">1</span></div>
                     </div>
                 </div>
 
@@ -258,7 +260,7 @@
                     <div class="space-y-2 text-sm text-slate-300">
                         <div>Altitude: <span id="stat-altitude">0</span> km</div>
                         <div>Velocity: <span id="stat-velocity">0</span> m/s</div>
-                        <div>Orbital Period: <span id="stat-period">N/A</span></div>
+                        <div>Phase: <span id="stat-phase">PAD</span></div>
                     </div>
                 </div>
 
@@ -267,7 +269,10 @@
                     <button id="reset-btn" class="action-button border border-slate-600 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-xl">Reset</button>
                 </div>
                 <button id="launch-btn" class="action-button w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg shadow-cyan-500/20">
-                    Launch craft
+                    Launch vehicle
+                </button>
+                <button id="stage-btn" class="action-button w-full border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/20 text-amber-200 font-semibold py-3 px-4 rounded-xl" disabled>
+                    Activate next stage
                 </button>
             </div>
 
@@ -284,7 +289,7 @@
                     <button type="button" class="flight-control action-button rounded-xl border border-cyan-400/50 bg-cyan-500/90 py-3 text-lg font-bold text-slate-950" data-control="thrust" aria-label="Thrust">↑</button>
                     <button type="button" class="flight-control action-button rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-lg text-slate-200" data-control="right" aria-label="Rotate right">↷</button>
                 </div>
-                <p class="mt-3 text-center text-xs text-slate-500">WASD: W thrust, S reverse, A/D rotate.</p>
+                <p class="mt-3 text-center text-xs text-slate-500">WASD: W throttle, S brake, A/D steer. Space: stage.</p>
             </div>
         </div>
     </div>
@@ -296,6 +301,7 @@
         const launchBtn = document.getElementById('launch-btn');
         const resetBtn = document.getElementById('reset-btn');
         const undoBtn = document.getElementById('undo-btn');
+        const stageBtn = document.getElementById('stage-btn');
         const buildStatus = document.getElementById('build-status');
         const partCount = document.getElementById('part-count');
         const modeLabel = document.getElementById('mode-label');
@@ -335,7 +341,11 @@
             velocity: { x: 0, y: 0 },
             rotation: 0,
             thrust: 0,
-            mass: 0
+            mass: 0,
+            fuel: 0,
+            maxFuel: 0,
+            activeStage: 1,
+            stageCount: 1
         };
 
         // Part definitions
@@ -601,7 +611,7 @@
                 document.querySelectorAll('.part-button').forEach(b => b.classList.remove('selected'));
                 button.classList.add('selected');
                 selectedPart = button.dataset.part;
-                buildStatus.textContent = `${PARTS[selectedPart].name} selected. Click the blueprint to place it.`;
+                buildStatus.textContent = `${PARTS[selectedPart].name} selected. Click the stack bay to add it.`;
                 drawBuildMode();
             });
         });
@@ -629,41 +639,56 @@
         canvas.addEventListener('click', (e) => {
             if (gameState !== 'building' || !selectedPart) return;
 
-            const { x, y } = getCanvasPosition(e);
-
-            const snappedX = Math.round((x - canvasWidth / 2) / 20) * 20;
-            const snappedY = Math.round((y - canvasHeight / 2) / 20) * 20;
+            const stackIndex = rocket.parts.length;
+            const stackSpacing = 34;
+            const stackY = canvasHeight / 2 + 120 - stackIndex * stackSpacing;
+            const stage = rocket.stageCount;
             rocket.parts.push({
                 type: selectedPart,
-                x: Math.max(-canvasWidth / 2 + 60, Math.min(canvasWidth / 2 - 60, snappedX)),
-                y: Math.max(-canvasHeight / 2 + 60, Math.min(canvasHeight / 2 - 60, snappedY))
+                x: 0,
+                y: stackY - canvasHeight / 2,
+                stage
             });
+
+            if (selectedPart === 'decoupler') rocket.stageCount += 1;
 
             updateRocketStats();
             drawBuildMode();
         });
 
         // Update rocket statistics
-        function updateRocketStats() {
+        function updateRocketStats(preserveFuel = false) {
             let mass = 0;
             let thrust = 0;
+            let fuel = 0;
+            let maxFuel = 0;
+            let stageCount = 1;
 
             rocket.parts.forEach(part => {
                 const partDef = PARTS[part.type];
                 if (partDef) {
                     mass += partDef.mass || 0;
-                    thrust += partDef.thrust || 0;
+                    if (part.stage === rocket.activeStage) thrust += partDef.thrust || 0;
+                    fuel += partDef.fuel || 0;
+                    maxFuel += partDef.fuel || 0;
+                    stageCount = Math.max(stageCount, part.stage || 1);
                 }
             });
 
             rocket.mass = mass;
             rocket.thrust = thrust;
-            partCount.textContent = `${rocket.parts.length} placed`;
+            if (!preserveFuel) rocket.fuel = fuel;
+            rocket.maxFuel = maxFuel;
+            rocket.stageCount = stageCount;
+            rocket.activeStage = Math.min(rocket.activeStage, rocket.stageCount);
+            partCount.textContent = `${rocket.parts.length} staged`;
             undoBtn.disabled = rocket.parts.length === 0;
 
             // Update UI
             document.getElementById('stat-mass').textContent = (mass/1000).toFixed(1);
             document.getElementById('stat-thrust').textContent = (thrust/1000).toFixed(1);
+            document.getElementById('stat-fuel').textContent = maxFuel ? Math.round((rocket.fuel / maxFuel) * 100) : '0';
+            document.getElementById('stat-stage').textContent = `${rocket.activeStage}/${rocket.stageCount}`;
             
             // Calculate delta-v using the rocket equation
             if (thrust > 0) {
@@ -698,6 +723,15 @@
 
             // Draw rocket parts
             const buildCenter = { x: canvasWidth / 2, y: canvasHeight / 2 };
+            ctx.strokeStyle = 'rgba(34, 211, 238, 0.28)';
+            ctx.setLineDash([6, 8]);
+            ctx.beginPath();
+            ctx.moveTo(buildCenter.x, 24);
+            ctx.lineTo(buildCenter.x, canvasHeight - 24);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.18)';
+            ctx.fillRect(buildCenter.x - 72, canvasHeight / 2 + 136, 144, 8);
             rocket.parts.forEach(part => {
                 const partDef = PARTS[part.type];
                 if (partDef && partDef.render) {
@@ -706,8 +740,8 @@
             });
 
             if (gameState === 'building' && selectedPart && cursorPosition) {
-                const previewX = Math.round((cursorPosition.x - buildCenter.x) / 20) * 20;
-                const previewY = Math.round((cursorPosition.y - buildCenter.y) / 20) * 20;
+                const previewX = 0;
+                const previewY = 120 - rocket.parts.length * 34;
                 const previewPart = PARTS[selectedPart];
                 ctx.save();
                 ctx.fillStyle = 'rgba(34, 211, 238, 0.16)';
@@ -739,12 +773,16 @@
         const controlKeys = {
             left: ['ArrowLeft', 'KeyA'],
             right: ['ArrowRight', 'KeyD'],
-            thrust: ['ArrowUp', 'KeyW', 'Space'],
+            thrust: ['ArrowUp', 'KeyW'],
             reverse: ['ArrowDown', 'KeyS']
         };
         window.addEventListener('keydown', event => {
             keys[event.code] = true;
             if (Object.values(controlKeys).some(control => control.includes(event.code))) event.preventDefault();
+            if (event.code === 'Space') {
+                event.preventDefault();
+                advanceStage();
+            }
         });
         window.addEventListener('keyup', event => keys[event.code] = false);
 
@@ -773,19 +811,34 @@
                 buildStatus.textContent = 'Add an engine before launching.';
                 return;
             }
+            if (rocket.fuel <= 0) {
+                buildStatus.textContent = 'Add a fuel tank before launching.';
+                return;
+            }
             if (rocket.parts.length > 0 && rocket.mass > 0) {
                 gameState = 'flying';
                 launchBtn.disabled = true;
                 undoBtn.disabled = true;
                 resetBtn.disabled = true;
+                stageBtn.disabled = rocket.stageCount < 2;
                 modeLabel.textContent = 'FLIGHT MODE';
                 buildStatus.textContent = 'Flight active. Use W/S to thrust and reverse, A/D to rotate.';
-                rocket.position = { x: canvasWidth / 2, y: canvasHeight - 100 };
+                rocket.position = { x: canvasWidth / 2, y: canvasHeight - 220 };
                 rocket.velocity = { x: 0, y: 0 };
                 rocket.rotation = -Math.PI/2; // pointing up
                 requestAnimationFrame(updateFlight);
             }
         });
+
+        function advanceStage() {
+            if (gameState !== 'flying' || rocket.activeStage >= rocket.stageCount) return;
+            rocket.activeStage += 1;
+            updateRocketStats(true);
+            buildStatus.textContent = `Stage ${rocket.activeStage} active. Thrust available.`;
+            if (rocket.activeStage >= rocket.stageCount) stageBtn.disabled = true;
+        }
+
+        stageBtn.addEventListener('click', advanceStage);
 
         // Flight mode update
         function updateFlight() {
@@ -800,7 +853,7 @@
             // Handle input
             const turningLeft = controlKeys.left.some(key => keys[key]);
             const turningRight = controlKeys.right.some(key => keys[key]);
-            const thrusting = controlKeys.thrust.some(key => keys[key]);
+            const thrusting = controlKeys.thrust.some(key => keys[key]) && rocket.fuel > 0;
             const reversing = controlKeys.reverse.some(key => keys[key]);
             if (turningLeft) rocket.rotation -= 0.02;
             if (turningRight) rocket.rotation += 0.02;
@@ -810,6 +863,10 @@
                 const thrust = rocket.thrust / rocket.mass * thrustDirection;
                 rocket.velocity.x += Math.cos(rocket.rotation) * thrust * 0.016;
                 rocket.velocity.y += Math.sin(rocket.rotation) * thrust * 0.016;
+                rocket.fuel = Math.max(0, rocket.fuel - 0.35);
+                document.getElementById('stat-fuel').textContent = rocket.maxFuel
+                    ? Math.round((rocket.fuel / rocket.maxFuel) * 100)
+                    : '0';
             }
 
             const drag = reversing ? BRAKE_DRAG : COAST_DRAG;
@@ -896,13 +953,8 @@
             document.getElementById('stat-altitude').textContent = Math.max(0, altitude.toFixed(1));
             document.getElementById('stat-velocity').textContent = velocity.toFixed(0);
 
-            // Calculate orbital period if in orbit
-            if (altitude > 0) {
-                const semiMajorAxis = distance;
-                const period = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * EARTH_MASS));
-                document.getElementById('stat-period').textContent = 
-                    period > 0 ? (period / 60).toFixed(1) + ' minutes' : 'N/A';
-            }
+            const phase = altitude <= 0 ? 'PAD' : altitude < 10 ? 'LIFTOFF' : altitude < 80 ? 'ASCENT' : 'HIGH ASCENT';
+            document.getElementById('stat-phase').textContent = phase;
 
             requestAnimationFrame(updateFlight);
         }
@@ -912,7 +964,7 @@
             rocket.parts.pop();
             updateRocketStats();
             drawBuildMode();
-            buildStatus.textContent = rocket.parts.length ? 'Last part removed.' : 'Select a part, then click the blueprint.';
+            buildStatus.textContent = rocket.parts.length ? 'Last part removed.' : 'Select a part, then click the stack bay.';
         });
 
         resetBtn.addEventListener('click', () => {
@@ -921,15 +973,20 @@
             rocket.velocity = { x: 0, y: 0 };
             rocket.mass = 0;
             rocket.thrust = 0;
+            rocket.fuel = 0;
+            rocket.maxFuel = 0;
+            rocket.activeStage = 1;
+            rocket.stageCount = 1;
             gameState = 'building';
             launchBtn.disabled = false;
             undoBtn.disabled = true;
             resetBtn.disabled = false;
+            stageBtn.disabled = true;
             modeLabel.textContent = 'BUILD MODE';
-            buildStatus.textContent = 'Select a part, then click the blueprint.';
+            buildStatus.textContent = 'Select a part, then click the stack bay.';
             document.getElementById('stat-altitude').textContent = '0';
             document.getElementById('stat-velocity').textContent = '0';
-            document.getElementById('stat-period').textContent = 'N/A';
+            document.getElementById('stat-phase').textContent = 'PAD';
             updateRocketStats();
             drawBuildMode();
         });
