@@ -350,6 +350,7 @@
             flightParts: [],
             debris: [],
             spaceOffset: { x: 0, y: 0 },
+            orbitTrail: [],
             hasMoved: false
         };
 
@@ -888,6 +889,22 @@
                 ctx.stroke();
             }
 
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2;
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.65)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 46, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 34, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 247, 237, 0.85)';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('BLACK HOLE', centerX, centerY + 68);
+
             // Draw rocket parts
             const buildCenter = { x: canvasWidth / 2, y: canvasHeight / 2 };
             rocket.parts.forEach(part => {
@@ -949,6 +966,7 @@
         const FLIGHT_MARGIN = 42;
         const COAST_DRAG = 0.985;
         const BRAKE_DRAG = 0.0001;
+        const ORBIT_DECAY = 0.9985;
         let lastFlightTime = 0;
         const spaceStars = Array.from({ length: 180 }, (_, index) => {
             const seed = (index * 9301 + 49297) % 233280;
@@ -994,7 +1012,37 @@
 
             const blackHoleX = canvasWidth / 2;
             const blackHoleY = canvasHeight / 2;
+            if (rocket.orbitTrail.length > 1) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                rocket.orbitTrail.forEach((point, index) => {
+                    if (index === 0) ctx.moveTo(point.x, point.y);
+                    else ctx.lineTo(point.x, point.y);
+                });
+                ctx.stroke();
+                ctx.restore();
+            }
             const diskPulse = 0.92 + Math.sin(Date.now() / 420) * 0.08;
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.strokeStyle = 'rgba(251, 146, 60, 0.22)';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.arc(blackHoleX, blackHoleY, 66, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = '#f97316';
+            ctx.lineWidth = 7;
+            ctx.beginPath();
+            ctx.arc(blackHoleX, blackHoleY, 58, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = '#fff7ed';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(blackHoleX, blackHoleY, 52, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
             ctx.save();
             ctx.translate(blackHoleX, blackHoleY);
             ctx.rotate(-0.18);
@@ -1030,6 +1078,9 @@
             ctx.beginPath();
             ctx.arc(blackHoleX, blackHoleY, BLACK_HOLE_RADIUS, 0, Math.PI * 2);
             ctx.fill();
+            ctx.strokeStyle = '#fef3c7';
+            ctx.lineWidth = 2;
+            ctx.stroke();
 
             const speed = Math.hypot(rocket.velocity.x, rocket.velocity.y);
             if (gameState === 'flying' && speed > 1.2) {
@@ -1182,8 +1233,7 @@
 
             const engineDef = PARTS[engine.type];
             const nozzleY = engine.y + (engineDef.height || 20) / 2;
-            const flicker = Math.sin(Date.now() / 45) * 5 + Math.sin(Date.now() / 73) * 3;
-            const flameLength = 34 + flicker;
+            const flameLength = 78;
             const flameWidth = Math.max(8, Math.min(22, (engineDef.width || 14) * 0.9));
 
             const outerFlame = ctx.createLinearGradient(engine.x, nozzleY, engine.x, nozzleY + flameLength);
@@ -1199,7 +1249,7 @@
             ctx.closePath();
             ctx.fill();
 
-            const coreLength = flameLength * 0.68;
+            const coreLength = flameLength * 0.62;
             const core = ctx.createLinearGradient(engine.x, nozzleY, engine.x, nozzleY + coreLength);
             core.addColorStop(0, '#ffffff');
             core.addColorStop(0.28, '#fef3c7');
@@ -1215,7 +1265,7 @@
 
             ctx.fillStyle = 'rgba(254, 215, 170, 0.38)';
             ctx.beginPath();
-            ctx.arc(engine.x - flameWidth * 0.7, nozzleY + flameLength * 0.46, 3 + Math.abs(flicker) * 0.25, 0, Math.PI * 2);
+            ctx.arc(engine.x - flameWidth * 0.7, nozzleY + flameLength * 0.46, 3, 0, Math.PI * 2);
             ctx.arc(engine.x + flameWidth * 0.72, nozzleY + flameLength * 0.62, 2.5, 0, Math.PI * 2);
             ctx.fill();
         }
@@ -1238,11 +1288,15 @@
                 stageBtn.disabled = rocket.stageCount < 2;
                 modeLabel.textContent = 'FLIGHT MODE';
                 buildStatus.textContent = 'Flight active. Use W/S to thrust and reverse, A/D to rotate.';
-                rocket.position = { x: canvasWidth / 2, y: canvasHeight - 220 };
-                rocket.velocity = { x: 0, y: 0 };
+                const orbitRadius = Math.min(250, canvasWidth * 0.3, canvasHeight * 0.3);
+                const blackHoleCenter = { x: canvasWidth / 2, y: canvasHeight / 2 };
+                rocket.position = { x: blackHoleCenter.x + orbitRadius, y: blackHoleCenter.y };
+                rocket.velocity = { x: 0, y: -0.16 };
                 rocket.rotation = 0;
                 rocket.spaceOffset = { x: 0, y: 0 };
-                rocket.hasMoved = false;
+                rocket.orbitTrail = [];
+                rocket.hasMoved = true;
+                buildStatus.textContent = 'Orbital insertion complete. Escape the black hole before the orbit decays.';
                 lastFlightTime = 0;
                 prepareFlightAssembly();
                 requestAnimationFrame(updateFlight);
@@ -1364,6 +1418,10 @@
 
             rocket.spaceOffset.x -= rocket.velocity.x * 2.4;
             rocket.spaceOffset.y -= rocket.velocity.y * 2.4;
+            rocket.velocity.x *= ORBIT_DECAY;
+            rocket.velocity.y *= ORBIT_DECAY;
+            rocket.orbitTrail.push({ x: rocket.position.x, y: rocket.position.y });
+            if (rocket.orbitTrail.length > 180) rocket.orbitTrail.shift();
             drawSpaceBackground();
 
             // Draw rocket
@@ -1424,6 +1482,7 @@
             rocket.flightParts = [];
             rocket.debris = [];
             rocket.spaceOffset = { x: 0, y: 0 };
+            rocket.orbitTrail = [];
             rocket.hasMoved = false;
             lastFlightTime = 0;
             gameState = 'building';
