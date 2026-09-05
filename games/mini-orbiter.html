@@ -322,6 +322,7 @@
         // Game state
         let gameState = 'building'; // 'building' or 'flying'
         let selectedPart = null;
+        let cursorPosition = null;
         let rocket = {
             parts: [],
             position: { x: 0, y: 0 },
@@ -593,16 +594,34 @@
                 button.classList.add('selected');
                 selectedPart = button.dataset.part;
                 buildStatus.textContent = `${PARTS[selectedPart].name} selected. Click the blueprint to place it.`;
+                drawBuildMode();
             });
+        });
+
+        function getCanvasPosition(event) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener('pointermove', (event) => {
+            if (gameState !== 'building') return;
+            cursorPosition = getCanvasPosition(event);
+            drawBuildMode();
+        });
+
+        canvas.addEventListener('pointerleave', () => {
+            cursorPosition = null;
+            drawBuildMode();
         });
 
         // Handle canvas clicks
         canvas.addEventListener('click', (e) => {
             if (gameState !== 'building' || !selectedPart) return;
 
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const { x, y } = getCanvasPosition(e);
 
             const snappedX = Math.round((x - canvasWidth / 2) / 20) * 20;
             const snappedY = Math.round((y - canvasHeight / 2) / 20) * 20;
@@ -677,6 +696,25 @@
                     partDef.render(buildCenter.x + part.x, buildCenter.y + part.y, 0);
                 }
             });
+
+            if (gameState === 'building' && selectedPart && cursorPosition) {
+                const previewX = Math.round((cursorPosition.x - buildCenter.x) / 20) * 20;
+                const previewY = Math.round((cursorPosition.y - buildCenter.y) / 20) * 20;
+                const previewPart = PARTS[selectedPart];
+                ctx.save();
+                ctx.fillStyle = 'rgba(34, 211, 238, 0.16)';
+                ctx.strokeStyle = 'rgba(103, 232, 249, 0.95)';
+                ctx.lineWidth = 2;
+                ctx.fillRect(buildCenter.x + previewX - 12, buildCenter.y + previewY - 12, 24, 24);
+                ctx.strokeRect(buildCenter.x + previewX - 12, buildCenter.y + previewY - 12, 24, 24);
+                ctx.restore();
+                if (previewPart && previewPart.render) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.45;
+                    previewPart.render(buildCenter.x + previewX, buildCenter.y + previewY, 0);
+                    ctx.restore();
+                }
+            }
         }
 
         // Launch mode physics
