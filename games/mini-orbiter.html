@@ -635,8 +635,8 @@
             const snappedY = Math.round((y - canvasHeight / 2) / 20) * 20;
             rocket.parts.push({
                 type: selectedPart,
-                x: snappedX,
-                y: snappedY
+                x: Math.max(-canvasWidth / 2 + 60, Math.min(canvasWidth / 2 - 60, snappedX)),
+                y: Math.max(-canvasHeight / 2 + 60, Math.min(canvasHeight / 2 - 60, snappedY))
             });
 
             updateRocketStats();
@@ -845,17 +845,17 @@
 
             if (rocket.position.x < FLIGHT_MARGIN) {
                 rocket.position.x = FLIGHT_MARGIN;
-                rocket.velocity.x = Math.abs(rocket.velocity.x) * 0.65;
+                if (rocket.velocity.x < 0) rocket.velocity.x = 0;
             } else if (rocket.position.x > canvasWidth - FLIGHT_MARGIN) {
                 rocket.position.x = canvasWidth - FLIGHT_MARGIN;
-                rocket.velocity.x = -Math.abs(rocket.velocity.x) * 0.65;
+                if (rocket.velocity.x > 0) rocket.velocity.x = 0;
             }
             if (rocket.position.y < FLIGHT_MARGIN) {
                 rocket.position.y = FLIGHT_MARGIN;
-                rocket.velocity.y = Math.abs(rocket.velocity.y) * 0.65;
+                if (rocket.velocity.y < 0) rocket.velocity.y = 0;
             } else if (rocket.position.y > canvasHeight - FLIGHT_MARGIN) {
                 rocket.position.y = canvasHeight - FLIGHT_MARGIN;
-                rocket.velocity.y = -Math.abs(rocket.velocity.y) * 0.65;
+                if (rocket.velocity.y > 0) rocket.velocity.y = 0;
             }
 
             // Draw rocket
