@@ -347,7 +347,9 @@
             activeStage: 1,
             stageCount: 1,
             flightParts: [],
-            debris: []
+            debris: [],
+            spaceOffset: { x: 0, y: 0 },
+            hasMoved: false
         };
 
         function metalGradient(top, bottom, left = '#f8fafc', right = '#64748b') {
@@ -400,22 +402,27 @@
                     ctx.rotate(rotation);
                     ctx.fillStyle = metalGradient('#ffffff', '#64748b', '#e2e8f0', '#475569');
                     ctx.beginPath();
-                    ctx.moveTo(-12, -15);
-                    ctx.lineTo(12, -15);
-                    ctx.lineTo(10, 15);
-                    ctx.lineTo(-10, 15);
+                    ctx.moveTo(-10, 8);
+                    ctx.lineTo(-9, -7);
+                    ctx.quadraticCurveTo(-7, -16, 0, -18);
+                    ctx.quadraticCurveTo(7, -16, 9, -7);
+                    ctx.lineTo(10, 8);
                     ctx.closePath();
                     ctx.fill();
                     ctx.strokeStyle = '#1e293b';
                     ctx.stroke();
                     ctx.fillStyle = '#0f172a';
                     ctx.beginPath();
-                    ctx.roundRect(-7, -10, 14, 7, 2);
+                    ctx.roundRect(-7, -7, 14, 7, 2);
                     ctx.fill();
                     ctx.strokeStyle = '#67e8f9';
                     ctx.stroke();
-                    drawBolt(-8, 10);
-                    drawBolt(8, 10);
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(-12, 7, 24, 5);
+                    ctx.strokeStyle = '#0f172a';
+                    ctx.strokeRect(-12, 7, 24, 5);
+                    drawBolt(-8, 9);
+                    drawBolt(8, 9);
                     ctx.restore();
                 }
             },
@@ -622,6 +629,107 @@
                         ctx.fill();
                         drawBolt(-5, -5, 1);
                         drawBolt(5, 5, 1);
+                    } else if (shape === 'module') {
+                        ctx.roundRect(-10, -12, 20, 24, 4);
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.stroke();
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(-6, -6, 12, 5);
+                        drawBand(7, 20, color);
+                    } else if (shape === 'nozzle') {
+                        ctx.beginPath();
+                        ctx.moveTo(-6, -8); ctx.lineTo(6, -8);
+                        ctx.lineTo(9, 5); ctx.lineTo(5, 10);
+                        ctx.lineTo(-5, 10); ctx.lineTo(-9, 5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.stroke();
+                        ctx.fillStyle = '#0b1120';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 9, 6, 3, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (shape === 'ring') {
+                        ctx.fillRect(-12, -5, 24, 10);
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.strokeRect(-12, -5, 24, 10);
+                        drawBand(0, 18, color);
+                    } else if (shape === 'bar') {
+                        ctx.fillRect(-12, -3, 24, 6);
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.strokeRect(-12, -3, 24, 6);
+                        drawBolt(-8, 0, 1);
+                        drawBolt(8, 0, 1);
+                    } else if (shape === 'cone') {
+                        ctx.beginPath();
+                        ctx.moveTo(0, -13); ctx.lineTo(11, 9);
+                        ctx.lineTo(-11, 9); ctx.closePath();
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.stroke();
+                        drawBand(7, 17, color);
+                    } else if (shape === 'adapter') {
+                        ctx.beginPath();
+                        ctx.moveTo(-6, -11); ctx.lineTo(6, -11);
+                        ctx.lineTo(11, 10); ctx.lineTo(-11, 10);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.stroke();
+                    } else if (shape === 'panel') {
+                        ctx.fillStyle = '#172554';
+                        ctx.fillRect(-14, -8, 28, 16);
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.strokeRect(-14, -8, 28, 16);
+                        ctx.beginPath();
+                        ctx.moveTo(0, -8); ctx.lineTo(0, 8);
+                        ctx.moveTo(-14, 0); ctx.lineTo(14, 0);
+                        ctx.stroke();
+                    } else if (shape === 'leg') {
+                        ctx.strokeStyle = '#cbd5e1';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(0, -8); ctx.lineTo(-8, 9); ctx.lineTo(8, 9);
+                        ctx.stroke();
+                        ctx.lineWidth = 1;
+                    } else if (shape === 'canopy') {
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(0, 2, 11, Math.PI, 0);
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.stroke();
+                        ctx.strokeStyle = '#fef2f2';
+                        ctx.beginPath();
+                        ctx.moveTo(-8, 2); ctx.lineTo(-4, 12);
+                        ctx.moveTo(8, 2); ctx.lineTo(4, 12);
+                        ctx.stroke();
+                    } else if (shape === 'shield') {
+                        ctx.beginPath();
+                        ctx.moveTo(-11, -7); ctx.lineTo(11, -7);
+                        ctx.lineTo(7, 7); ctx.quadraticCurveTo(0, 13, -7, 7);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.stroke();
+                    } else if (shape === 'dish') {
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(0, 3, 10, Math.PI, 0);
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(0, 3); ctx.lineTo(0, -12);
+                        ctx.stroke();
+                    } else if (shape === 'finned') {
+                        ctx.fillRect(-7, -10, 14, 20);
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.strokeRect(-7, -10, 14, 20);
+                        ctx.fillStyle = color;
+                        ctx.fillRect(-13, -4, 6, 10);
+                        ctx.fillRect(7, -4, 6, 10);
                     } else {
                         ctx.fillRect(-9, -9, 18, 18);
                         ctx.strokeStyle = '#0f172a';
@@ -637,23 +745,23 @@
 
         Object.assign(PARTS, {
             dockingPort: createBasicPart('Docking Port', 150, '#94a3b8', 'circle'),
-            hitchhiker: createBasicPart('Crew Module', 1200, '#f59e0b'),
-            rcs: createBasicPart('RCS', 200, '#38bdf8'),
-            decoupler: createBasicPart('Decoupler', 120, '#f97316'),
-            strut: createBasicPart('Strut', 40, '#64748b'),
-            noseCone: createBasicPart('Nose Cone', 180, '#e2e8f0'),
-            adapter: createBasicPart('Adapter', 240, '#a78bfa'),
-            radiator: createBasicPart('Radiator', 100, '#67e8f9'),
-            legs: createBasicPart('Landing Legs', 160, '#94a3b8'),
-            chute: createBasicPart('Parachute', 80, '#fb7185'),
-            heatshield: createBasicPart('Heat Shield', 300, '#f97316'),
-            airbrake: createBasicPart('Airbrake', 120, '#f43f5e'),
-            solar: createBasicPart('Solar Panel', 80, '#38bdf8'),
-            science: createBasicPart('Science Lab', 700, '#c084fc'),
-            antenna: createBasicPart('Antenna', 60, '#facc15'),
-            rtg: createBasicPart('RTG', 180, '#fb923c'),
-            goo: createBasicPart('Goo Tank', 100, '#4ade80'),
-            sensor: createBasicPart('Sensors', 70, '#22d3ee')
+            hitchhiker: createBasicPart('Crew Module', 1200, '#f59e0b', 'module'),
+            rcs: createBasicPart('RCS', 200, '#38bdf8', 'nozzle'),
+            decoupler: createBasicPart('Decoupler', 120, '#f97316', 'ring'),
+            strut: createBasicPart('Strut', 40, '#64748b', 'bar'),
+            noseCone: createBasicPart('Nose Cone', 180, '#e2e8f0', 'cone'),
+            adapter: createBasicPart('Adapter', 240, '#a78bfa', 'adapter'),
+            radiator: createBasicPart('Radiator', 100, '#67e8f9', 'panel'),
+            legs: createBasicPart('Landing Legs', 160, '#94a3b8', 'leg'),
+            chute: createBasicPart('Parachute', 80, '#fb7185', 'canopy'),
+            heatshield: createBasicPart('Heat Shield', 300, '#f97316', 'shield'),
+            airbrake: createBasicPart('Airbrake', 120, '#f43f5e', 'finned'),
+            solar: createBasicPart('Solar Panel', 80, '#38bdf8', 'panel'),
+            science: createBasicPart('Science Lab', 700, '#c084fc', 'module'),
+            antenna: createBasicPart('Antenna', 60, '#facc15', 'dish'),
+            rtg: createBasicPart('RTG', 180, '#fb923c', 'module'),
+            goo: createBasicPart('Goo Tank', 100, '#4ade80', 'circle'),
+            sensor: createBasicPart('Sensors', 70, '#22d3ee', 'finned')
         });
 
         resizeCanvas();
@@ -837,7 +945,68 @@
         const MAX_FLIGHT_SPEED = 4;
         const FLIGHT_MARGIN = 42;
         const COAST_DRAG = 0.985;
-        const BRAKE_DRAG = 0.9;
+        const BRAKE_DRAG = 1.25;
+        const spaceStars = Array.from({ length: 180 }, (_, index) => {
+            const seed = (index * 9301 + 49297) % 233280;
+            const secondSeed = (seed * 9301 + 49297) % 233280;
+            return {
+                x: seed / 233280,
+                y: secondSeed / 233280,
+                size: index % 13 === 0 ? 2 : index % 4 === 0 ? 1.4 : 0.8,
+                layer: index % 3
+            };
+        });
+
+        function wrap(value, size) {
+            return ((value % size) + size) % size;
+        }
+
+        function drawSpaceBackground() {
+            const { x: offsetX, y: offsetY } = rocket.spaceOffset;
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            const nebula = ctx.createLinearGradient(0, canvasHeight, canvasWidth, 0);
+            nebula.addColorStop(0, 'rgba(14, 116, 144, 0.24)');
+            nebula.addColorStop(0.42, 'rgba(30, 41, 59, 0.04)');
+            nebula.addColorStop(0.7, 'rgba(124, 58, 237, 0.18)');
+            nebula.addColorStop(1, 'rgba(190, 24, 93, 0.08)');
+            ctx.fillStyle = nebula;
+            ctx.beginPath();
+            ctx.ellipse(canvasWidth * 0.52, canvasHeight * 0.38, canvasWidth * 0.78, canvasHeight * 0.2, -0.28, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            spaceStars.forEach(star => {
+                const parallax = [0.22, 0.5, 1][star.layer];
+                const x = wrap(star.x * canvasWidth + offsetX * parallax, canvasWidth);
+                const y = wrap(star.y * canvasHeight + offsetY * parallax, canvasHeight);
+                ctx.fillStyle = star.layer === 2 ? 'rgba(186, 230, 253, 0.9)' : 'rgba(226, 232, 240, 0.62)';
+                ctx.beginPath();
+                ctx.arc(x, y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            const speed = Math.hypot(rocket.velocity.x, rocket.velocity.y);
+            if (gameState === 'flying' && speed > 1.2) {
+                const streakCount = Math.min(26, Math.floor(speed * 5));
+                const streakDirectionX = -rocket.velocity.x / speed;
+                const streakDirectionY = -rocket.velocity.y / speed;
+                for (let index = 0; index < streakCount; index++) {
+                    const x = (index * 83 + wrap(offsetX * 2, canvasWidth)) % canvasWidth;
+                    const y = (index * 47 + wrap(offsetY * 2, canvasHeight)) % canvasHeight;
+                    const length = 8 + speed * 4;
+                    ctx.strokeStyle = `rgba(125, 211, 252, ${Math.min(0.55, speed / 10)})`;
+                    ctx.lineWidth = index % 3 === 0 ? 1.5 : 0.7;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + streakDirectionX * length, y + streakDirectionY * length);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
 
         let keys = {};
         const controlKeys = {
@@ -960,6 +1129,54 @@
             });
         }
 
+        function drawActiveEngineExhaust(thrusting, reversing) {
+            if (!thrusting && !reversing) return;
+            const activeEngines = rocket.flightParts
+                .filter(part => part.stage === rocket.activeStage && (PARTS[part.type]?.thrust || 0) > 0)
+                .sort((left, right) => right.y - left.y);
+            const engine = activeEngines[0];
+            if (!engine) return;
+
+            const engineDef = PARTS[engine.type];
+            const nozzleY = engine.y + (engineDef.height || 20) / 2;
+            const flicker = Math.sin(Date.now() / 45) * 5 + Math.sin(Date.now() / 73) * 3;
+            const flameLength = 34 + flicker;
+            const flameWidth = Math.max(8, Math.min(22, (engineDef.width || 14) * 0.9));
+
+            const outerFlame = ctx.createLinearGradient(engine.x, nozzleY, engine.x, nozzleY + flameLength);
+            outerFlame.addColorStop(0, reversing ? '#fff7ed' : '#fff1a8');
+            outerFlame.addColorStop(0.18, '#fb923c');
+            outerFlame.addColorStop(0.58, '#ef4444');
+            outerFlame.addColorStop(1, 'rgba(127, 29, 29, 0)');
+            ctx.fillStyle = outerFlame;
+            ctx.beginPath();
+            ctx.moveTo(engine.x - flameWidth / 2, nozzleY);
+            ctx.quadraticCurveTo(engine.x - flameWidth * 0.72, nozzleY + flameLength * 0.45, engine.x - 2, nozzleY + flameLength);
+            ctx.quadraticCurveTo(engine.x + flameWidth * 0.72, nozzleY + flameLength * 0.45, engine.x + flameWidth / 2, nozzleY);
+            ctx.closePath();
+            ctx.fill();
+
+            const coreLength = flameLength * 0.68;
+            const core = ctx.createLinearGradient(engine.x, nozzleY, engine.x, nozzleY + coreLength);
+            core.addColorStop(0, '#ffffff');
+            core.addColorStop(0.28, '#fef3c7');
+            core.addColorStop(0.75, '#fbbf24');
+            core.addColorStop(1, 'rgba(249, 115, 22, 0)');
+            ctx.fillStyle = core;
+            ctx.beginPath();
+            ctx.moveTo(engine.x - flameWidth * 0.22, nozzleY);
+            ctx.quadraticCurveTo(engine.x - flameWidth * 0.3, nozzleY + coreLength * 0.45, engine.x, nozzleY + coreLength);
+            ctx.quadraticCurveTo(engine.x + flameWidth * 0.3, nozzleY + coreLength * 0.45, engine.x + flameWidth * 0.22, nozzleY);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(254, 215, 170, 0.38)';
+            ctx.beginPath();
+            ctx.arc(engine.x - flameWidth * 0.7, nozzleY + flameLength * 0.46, 3 + Math.abs(flicker) * 0.25, 0, Math.PI * 2);
+            ctx.arc(engine.x + flameWidth * 0.72, nozzleY + flameLength * 0.62, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         // Launch button
         launchBtn.addEventListener('click', () => {
             if (rocket.thrust <= 0) {
@@ -981,6 +1198,8 @@
                 rocket.position = { x: canvasWidth / 2, y: canvasHeight - 220 };
                 rocket.velocity = { x: 0, y: 0 };
                 rocket.rotation = 0;
+                rocket.spaceOffset = { x: 0, y: 0 };
+                rocket.hasMoved = false;
                 prepareFlightAssembly();
                 requestAnimationFrame(updateFlight);
             }
@@ -1019,17 +1238,12 @@
         function updateFlight() {
             if (gameState !== 'flying') return;
 
-            // Clear canvas
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
-            // Draw starry background
-            // ... (background drawing code remains the same)
-
             // Handle input
             const turningLeft = controlKeys.left.some(key => keys[key]);
             const turningRight = controlKeys.right.some(key => keys[key]);
             const thrusting = controlKeys.thrust.some(key => keys[key]) && rocket.fuel > 0;
             const reversing = controlKeys.reverse.some(key => keys[key]);
+            const movingInput = (thrusting || reversing) && rocket.thrust > 0;
             if (turningLeft) rocket.rotation -= 0.02;
             if (turningRight) rocket.rotation += 0.02;
             if (thrusting || reversing) {
@@ -1046,9 +1260,13 @@
                     : '0';
             }
 
-            const drag = reversing ? BRAKE_DRAG : COAST_DRAG;
-            rocket.velocity.x *= drag;
-            rocket.velocity.y *= drag;
+            if (movingInput) rocket.hasMoved = true;
+
+            if (rocket.hasMoved) {
+                const drag = reversing ? BRAKE_DRAG : COAST_DRAG;
+                rocket.velocity.x *= drag;
+                rocket.velocity.y *= drag;
+            }
 
             // Apply gravity
             const distance = Math.sqrt(
@@ -1056,15 +1274,17 @@
                 Math.pow(rocket.position.y - canvasHeight/2, 2)
             ) * SCALE;
             const safeDistance = Math.max(distance, EARTH_RADIUS);
-            
-            const gravity = G * EARTH_MASS / Math.pow(safeDistance, 2);
-            const angle = Math.atan2(
-                canvasHeight/2 - rocket.position.y,
-                canvasWidth/2 - rocket.position.x
-            );
-            
-            rocket.velocity.x += Math.cos(angle) * gravity * 0.016;
-            rocket.velocity.y += Math.sin(angle) * gravity * 0.016;
+
+            if (rocket.hasMoved) {
+                const gravity = G * EARTH_MASS / Math.pow(safeDistance, 2);
+                const angle = Math.atan2(
+                    canvasHeight/2 - rocket.position.y,
+                    canvasWidth/2 - rocket.position.x
+                );
+
+                rocket.velocity.x += Math.cos(angle) * gravity * 0.016;
+                rocket.velocity.y += Math.sin(angle) * gravity * 0.016;
+            }
 
             const speed = Math.hypot(rocket.velocity.x, rocket.velocity.y);
             if (speed > MAX_FLIGHT_SPEED) {
@@ -1094,6 +1314,10 @@
 
             updateDebris();
 
+            rocket.spaceOffset.x -= rocket.velocity.x * 2.4;
+            rocket.spaceOffset.y -= rocket.velocity.y * 2.4;
+            drawSpaceBackground();
+
             // Draw rocket
             ctx.save();
             ctx.translate(rocket.position.x, rocket.position.y);
@@ -1106,22 +1330,7 @@
                 }
             });
 
-            // Draw engine exhaust when thrusting
-            if (thrusting || reversing) {
-                const flameLength = 28 + Math.sin(Date.now() / 55) * 7;
-                const flameWidth = reversing ? 7 : 11;
-                const flame = ctx.createLinearGradient(0, 15, 0, 15 + flameLength);
-                flame.addColorStop(0, reversing ? '#fbbf24' : '#fef3c7');
-                flame.addColorStop(0.35, reversing ? '#f97316' : '#38bdf8');
-                flame.addColorStop(1, 'rgba(14, 165, 233, 0)');
-                ctx.fillStyle = flame;
-                ctx.beginPath();
-                ctx.moveTo(-flameWidth / 2, 15);
-                ctx.lineTo(flameWidth / 2, 15);
-                ctx.lineTo(0, 15 + flameLength);
-                ctx.closePath();
-                ctx.fill();
-            }
+            drawActiveEngineExhaust(thrusting, reversing);
             
             ctx.restore();
             drawDebris();
@@ -1166,6 +1375,8 @@
             rocket.stageCount = 1;
             rocket.flightParts = [];
             rocket.debris = [];
+            rocket.spaceOffset = { x: 0, y: 0 };
+            rocket.hasMoved = false;
             gameState = 'building';
             launchBtn.disabled = false;
             undoBtn.disabled = true;
